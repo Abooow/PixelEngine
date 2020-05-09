@@ -28,8 +28,14 @@ namespace PixelEngine.Utilities
 			interval = (int)(duration * 1000 / values.Length);
 			Automatic = true;
 		}
+        public Animation(T[] values, int fps)
+        {
+            this.values = values;
+            interval = 1000 / fps;
+            Automatic = true;
+        }
 
-		public void Start()
+        public void Start()
 		{
 			if (!Running)
 			{

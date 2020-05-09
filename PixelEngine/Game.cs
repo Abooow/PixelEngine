@@ -17,6 +17,7 @@ namespace PixelEngine
 		#region Members
 		public int MouseX { get; private set; }
 		public int MouseY { get; private set; }
+        public Point MousePosition => new Point(MouseX, MouseY);
 		public SpriteBatch SpriteBatch { get; private set; }
 		public Color.Mode ColorMode { get; set; } = Color.Mode.Normal;
 		public Font Font { get; set; }
@@ -609,24 +610,27 @@ namespace PixelEngine
 			switch (ColorMode)
 			{
 				case Color.Mode.Normal:
-					if (col.A == 255)
-						MakePixel(p.X, p.Y, col);
+					MakePixel(p.X, p.Y, col);
 					break;
 
 				case Color.Mode.Adjective:
-					MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] + col);
+                    if (col.A != 0)
+                        MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] + col);
 					break;
 
 				case Color.Mode.Negative:
-					MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] - col);
+                    if (col.A != 0)
+                        MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] - col);
 					break;
 
 				case Color.Mode.Multiply:
-					MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] * col);
+                    if (col.A != 0)
+                        MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] * col);
 					break;
 
 				case Color.Mode.Xor:
-					MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] ^ col);
+                    if (col.A != 0)
+                        MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] ^ col);
 					break;
 
 				case Color.Mode.Mask:
@@ -1080,16 +1084,16 @@ namespace PixelEngine
 			if (position.X + end.X > ScreenWidth) end.X = ScreenWidth - position.X;
 			if (position.Y + end.Y > ScreenHeight) end.Y = ScreenHeight - position.Y;
 
-			for (int i = start.X; i < end.X; i++)
-				for (int j = start.Y; j < end.Y; j++)
-				{
-					if (color == null)
+            for (int i = start.X; i < end.X; i++)
+                for (int j = start.Y; j < end.Y; j++)
+                {
+                    if (color == null)
 						Draw(position.X + i, position.Y + j, sprite[i, j]);
 					else
 						Draw(position.X + i, position.Y + j, sprite[i, j] * (Color)color);
 				}
 		}
-		public void DrawPartialSprite(Point position, Sprite sprite, Rectangle sourceRect, Color? color = null)
+		public void DrawSprite(Point position, Sprite sprite, Rectangle sourceRect, Color? color = null)
 		{
 			if (sprite == null) return;
 
