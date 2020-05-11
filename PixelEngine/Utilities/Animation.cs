@@ -3,91 +3,122 @@ using System.Threading.Tasks;
 
 namespace PixelEngine.Utilities
 {
-	public class Animation<T>
-	{
-		public T Value { get; private set; }
+    public class Animation<T>
+    {
+        public T Value { get; private set; }
 
-		public bool Running { get; private set; }
-		public bool Loop { get; set; }
+        public bool Running { get; private set; }
+        public bool Loop { get; set; }
 
-		public bool Automatic { get; private set; }
+        public bool Automatic { get; set; }
+        public bool HaveLoopedOnce { get; private set; }
 
-		private T[] values;
-		private int index;
+        private T[] values;
+        private int index;
 
-		private int interval;
+        private int interval;
+        private float timer;
 
-		public Animation(T[] values)
-		{
-			this.values = values;
-			Automatic = false;
-		}
-		public Animation(T[] values, float duration)
-		{
-			this.values = values;
-			interval = (int)(duration * 1000 / values.Length);
-			Automatic = true;
-		}
-        public Animation(T[] values, int fps)
+        public Animation(T[] values)
         {
             this.values = values;
+
+            Value = values[0];
+            Running = false;
+            Loop = true;
+            Automatic = false;
+            HaveLoopedOnce = false;
+            index = 0;
+            interval = 100;
+        }
+        public Animation(T[] values, float duration) : this(values)
+        {
+            interval = (int)(duration * 1000 / values.Length);
+            Automatic = true;
+        }
+        public Animation(T[] values, int fps) : this(values)
+        {
             interval = 1000 / fps;
             Automatic = true;
         }
 
+        public bool IsAtEnd() => index == values.Length - 1;
+
+        public void Reset()
+        {
+            timer = 0;
+            index = 0;
+            Value = values[0];
+            HaveLoopedOnce = false;
+        }
+
         public void Start()
-		{
-			if (!Running)
-			{
-				index = 0;
-				Value = values[0];
+        {
+            if (!Running)
+            {
+                Reset();
 
-				Task.Run(Animate);
-			}
+                if (Automatic) Task.Run(Animate);
+            }
 
-			Running = true;
-		}
+            Running = true;
+        }
 
-		public void Update()
-		{
-			if (!Running)
-				return;
+        public void Update()
+        {
+            if (!Running) return;
 
-			index++;
-			if (index == values.Length)
-			{
-				if (Loop)
-					index = 0;
-				else
-					Running = false;
-			}
-			Value = values[index];
-		}
+            index++;
+            if (index == values.Length)
+            {
+                HaveLoopedOnce = true;
 
-		public void Stop() => Running = false;
+                if (Loop)
+                    index = 0;
+                else
+                    Running = false;
+            }
+            Value = values[index];
+        }
 
-		private void Animate()
-		{
-			while (true)
-			{
-				if(!Running)
-					break;
+        public void Update(float elapsed)
+        {
+            if (!Running) return;
 
-				Thread.Sleep(interval);
+            Automatic = false;
+            timer += elapsed;
+            if (timer >= interval)
+            {
+                timer = 0;
+                Update();
+            }
+        }
 
-				index++;
-				if (index == values.Length)
-				{
-					if (Loop)
-						index = 0;
-					else
-						break;
-				}
+        public void Stop() => Running = false;
 
-				Value = values[index];
-			}
+        private void Animate()
+        {
+            while (true)
+            {
+                if (!Running) break;
 
-			Running = false;
-		}
-	}
+                Thread.Sleep(interval);
+
+                index++;
+                if (index == values.Length)
+                {
+                    HaveLoopedOnce = true;
+
+                    if (Loop)
+                        index = 0;
+                    else
+                        break;
+                }
+
+                Value = values[index];
+            }
+
+            Running = false;
+        }
+    }
 }
