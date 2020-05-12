@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,7 +9,22 @@ namespace PixelEngine.Utilities
 {
 	public static class Algorithms
 	{
-		public static T[] Concat<T>(params T[][] items)
+        public static bool IsNumeric(this object expression, out double number)
+        {
+            if (expression == null)
+            {
+                number = -1;
+                return false;
+            }
+
+            return Double.TryParse(Convert.ToString(expression
+                                  , CultureInfo.InvariantCulture)
+                                  , System.Globalization.NumberStyles.Any
+                                  , NumberFormatInfo.InvariantInfo
+                                  , out number);
+        }
+
+        public static T[] Concat<T>(params T[][] items)
 		{
 			T[] result = new T[items.Sum(t => t.Length)];
 

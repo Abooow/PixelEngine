@@ -26,14 +26,14 @@ namespace PixelEngine.Utilities
         public AnimatorState<T> AnyState { get; private set; }
 
         private AnimatorState<T> currentAnimatorState;
-        private List<FloatParameter> parameters;
+        private List<Param> parameters;
         private List<AnimatorState<T>> animatorStates;
 
         private AnimatorState<T> nextState;
 
         public Animator()
         {
-            parameters = new List<FloatParameter>();
+            parameters = new List<Param>();
             animatorStates = new List<AnimatorState<T>>();
             AnyState = new AnimatorState<T>("AnyState", null);
             animatorStates.Add(AnyState);
@@ -60,7 +60,7 @@ namespace PixelEngine.Utilities
             }
         }
 
-        public void AddParameter(FloatParameter parameter)
+        public void AddParameter(Param parameter)
         {
             if (!parameters.Contains(parameter)) parameters.Add(parameter);
         }
@@ -90,7 +90,7 @@ namespace PixelEngine.Utilities
             if (nextState != null)
             {
                 Connection<T> connection = currentAnimatorState.FindConnection(nextState);
-                if (connection != null && connection.ResetAnimation) StopAnimation(currentAnimatorState.Animation);
+                if (connection != null && (connection.ResetAnimation || connection.HasExitTime)) StopAnimation(currentAnimatorState.Animation);
                 currentAnimatorState = nextState;
                 currentAnimatorState.Animation?.Start();
             }
@@ -106,39 +106,51 @@ namespace PixelEngine.Utilities
         }
 
         #region Params IO
-        public float GetFloatValue(string name)
-        {
-            GetParam(name, out FloatParameter param);
+        //public float GetFloatValue(string name)
+        //{
+        //    GetParam(name, out Param param);
 
-            if (param != null) return param.Value;
-            else return -1f;
-        }
+        //    if (param != null) return param.Value;
+        //    else return -1f;
+        //}
 
-        public bool GetBoolValue(string name)
-        {
-            GetParam(name, out FloatParameter param);
+        //public bool GetBoolValue(string name)
+        //{
+        //    GetParam(name, out Param param);
 
-            if (param != null) return param.Value == 1f ? true : false;
-            else return false;
-        }
+        //    if (param != null) return param.Value == 1f ? true : false;
+        //    else return false;
+        //}
 
         public void SetFloat(string name, float value)
         {
-            GetParam(name, out FloatParameter param);
+            GetParam(name, out Param param);
 
-            if (param is BoolParameter bParam) bParam.ChangeValue(value);
-            else if (param != null) param.Value = value;
+            if (param is FloatParameter bParam) bParam.Value = value;
         }
 
         public void SetBool(string name, bool value)
         {
-            GetParam(name, out FloatParameter param);
+            GetParam(name, out Param param);
 
-            if (param is BoolParameter bParam) bParam.ChangeValue(value);
-            else if (param != null) param.Value = value ? 1f : 0f;
+            if (param is BoolParameter bParam) bParam.Value = value;
+        }
+        public void SetEnum(string name, Enum value)
+        {
+            GetParam(name, out Param param);
+
+            if (param is EnumParameter eParam && eParam.Value.Equals(value)) eParam.Value = value;
         }
 
-        private void GetParam(string name, out FloatParameter param) => param = parameters.Find((_param) => _param.Name == name);
+        public void SetParam<T1>(string name, T1 value) where T1 : Parameter<T1>
+        {
+            GetParam(name, out Param param);
+
+            if (param is T1 t) t.Value = value;
+        }
+
+
+        private void GetParam(string name, out Param param) => param = parameters.Find((_param) => _param.Name == name);
         #endregion
     }
 
@@ -221,41 +233,104 @@ namespace PixelEngine.Utilities
     }
 
     #region Conditions
-    public class FloatParameter
+    public interface Param
     {
-        public string Name;
-        public float Value;
+        string Name { get; set; }
+        bool IsLessThan(object other);
+        bool IsMoreThan(object other);
+        bool IsEqualTo(object other);
+    }
 
-        public FloatParameter(string name)
+    public interface Parameter<T> : Param
+    {
+        T Value { get; set; }
+    }
+
+    public class FloatParameter : Parameter<float>
+    {
+        public string Name { get; set; }
+        public float Value { get; set; }
+
+        public bool IsEqualTo(object other)
         {
-            Name = name;
+            throw new NotImplementedException();
         }
 
-        public FloatParameter(string name, float value)
+        public bool IsLessThan(object other)
         {
-            Value = value;
+            throw new NotImplementedException();
+        }
+
+        public bool IsMoreThan(object other)
+        {
+            throw new NotImplementedException();
         }
     }
 
-    public class BoolParameter : FloatParameter
+    public class BoolParameter : Parameter<bool>
     {
-        public BoolParameter(string name) : base(name)
+        public string Name { get; set; }
+        public bool Value { get; set; }
+
+        public BoolParameter(string name) : this(name, false)
         {
         }
 
-        public BoolParameter(string name, bool value) : base(name)
+        public BoolParameter(string name, bool value)
         {
-            Value = value ? 1f : 0f;
+            Name = name;
+            Value = value;
         }
 
-        public void ChangeValue(bool value)
+        public bool IsLessThan(object other)
         {
-            Value = value ? 1f : 0f;
+            if (other == null) return false;
+
+            bool isNum = other.IsNumeric(out double number);
+            if (other is bool oBool) return Value ? oBool ? false : false : true;
+            if (isNum) return Value ? number == 1 ? false : number == 0 ? false : true : false;
+            return false;
         }
 
-        public void ChangeValue(float value)
+        public bool IsMoreThan(object other)
         {
-            Value = value == 1f ? 1f : 0f;
+            if (other == null) return false;
+
+            bool isNum = other.IsNumeric(out double number);
+            if (other is bool oBool) return Value ? oBool ? false : true : false;
+            if (isNum) return Value ? number == 1 ? false : number == 0 ? true : false : false;
+            return false;
+        }
+
+        public bool IsEqualTo(object other)
+        {
+            if (other == null) return false;
+
+            bool isNum = other.IsNumeric(out double number);
+            if (other is bool oBool) return Value ? oBool ? true : false : !oBool ? true : false;
+            if (isNum) return Value ? number == 1 ? true : number == 0 ? false : false : number == 0 ? true : false;
+            return false;
+        }
+    }
+
+    public class EnumParameter : Parameter<Enum>
+    {
+        public string Name { get; set; }
+        public Enum Value { get; set; }
+
+        public bool IsEqualTo(object other)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool IsLessThan(object other)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool IsMoreThan(object other)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -294,21 +369,14 @@ namespace PixelEngine.Utilities
 
     public class Condition
     {
-        public FloatParameter Parameter;
-        public float CompareTo;
+        public Param Parameter;
+        public object CompareTo;
         public ConditionType ConditionType;
 
-        public Condition(FloatParameter parameter, float compareTo, ConditionType condition)
+        public Condition(Param parameter, object compareTo, ConditionType condition)
         {
             Parameter = parameter;
             CompareTo = compareTo;
-            ConditionType = condition;
-        }
-
-        public Condition(FloatParameter parameter, bool compareTo, ConditionType condition)
-        {
-            Parameter = parameter;
-            CompareTo = compareTo ? 1f : 0f;
             ConditionType = condition;
         }
 
@@ -316,9 +384,9 @@ namespace PixelEngine.Utilities
         {
             bool isMet = false;
 
-            if ((ConditionType & ConditionType.LSS) == ConditionType.LSS && !isMet) isMet = Parameter.Value < CompareTo;
-            if ((ConditionType & ConditionType.QTR) == ConditionType.QTR && !isMet) isMet = Parameter.Value > CompareTo;
-            if ((ConditionType & ConditionType.EQU) == ConditionType.EQU && !isMet) isMet = Parameter.Value == CompareTo;
+            if ((ConditionType & ConditionType.LSS) == ConditionType.LSS && !isMet) isMet = Parameter.IsLessThan(CompareTo);
+            if ((ConditionType & ConditionType.QTR) == ConditionType.QTR && !isMet) isMet = Parameter.IsMoreThan(CompareTo);
+            if ((ConditionType & ConditionType.EQU) == ConditionType.EQU && !isMet) isMet = Parameter.IsEqualTo(CompareTo);
             if ((ConditionType & ConditionType.NOT) == ConditionType.NOT) isMet = !isMet;
 
             return isMet;
@@ -328,11 +396,6 @@ namespace PixelEngine.Utilities
         {
             string _operator = "";
 
-            bool IsFloatToBool(float value)
-            {
-                return value == 1f ? true : false;
-            }
-
             if ((ConditionType & ConditionType.NOT) == ConditionType.NOT) _operator += '!';
             if ((ConditionType & ConditionType.LSS) == ConditionType.LSS) _operator += '<';
             if ((ConditionType & ConditionType.QTR) == ConditionType.QTR) _operator += '>';
@@ -340,11 +403,99 @@ namespace PixelEngine.Utilities
 
             if (_operator == "=") _operator += '=';
 
-            if (Parameter is BoolParameter bParam)
-                return $"({IsFloatToBool(Parameter.Value)} {_operator} {IsFloatToBool(CompareTo)}) = {ConditionIsMet()}";
-            else
-                return $"({Parameter.Value} {_operator} {CompareTo}) = {ConditionIsMet()}";
+            return $"({Parameter.ToString()} {_operator} {CompareTo}) = {ConditionIsMet()}";
         }
     }
+    //public class FloatParameter
+    //{
+    //    public string Name;
+    //    public float Value;
+
+    //    public FloatParameter(string name)
+    //    {
+    //        Name = name;
+    //    }
+
+    //    public FloatParameter(string name, float value)
+    //    {
+    //        Value = value;
+    //    }
+    //}
+
+    //public class BoolParameter : FloatParameter
+    //{
+    //    public BoolParameter(string name) : base(name)
+    //    {
+    //    }
+
+    //    public BoolParameter(string name, bool value) : base(name)
+    //    {
+    //        Value = value ? 1f : 0f;
+    //    }
+
+    //    public void ChangeValue(bool value)
+    //    {
+    //        Value = value ? 1f : 0f;
+    //    }
+
+    //    public void ChangeValue(float value)
+    //    {
+    //        Value = value == 1f ? 1f : 0f;
+    //    }
+    //}
+    //public class Condition
+    //{
+    //    public FloatParameter Parameter;
+    //    public float CompareTo;
+    //    public ConditionType ConditionType;
+
+    //    public Condition(FloatParameter parameter, float compareTo, ConditionType condition)
+    //    {
+    //        Parameter = parameter;
+    //        CompareTo = compareTo;
+    //        ConditionType = condition;
+    //    }
+
+    //    public Condition(FloatParameter parameter, bool compareTo, ConditionType condition)
+    //    {
+    //        Parameter = parameter;
+    //        CompareTo = compareTo ? 1f : 0f;
+    //        ConditionType = condition;
+    //    }
+
+    //    public bool ConditionIsMet()
+    //    {
+    //        bool isMet = false;
+
+    //        if ((ConditionType & ConditionType.LSS) == ConditionType.LSS && !isMet) isMet = Parameter.Value < CompareTo;
+    //        if ((ConditionType & ConditionType.QTR) == ConditionType.QTR && !isMet) isMet = Parameter.Value > CompareTo;
+    //        if ((ConditionType & ConditionType.EQU) == ConditionType.EQU && !isMet) isMet = Parameter.Value == CompareTo;
+    //        if ((ConditionType & ConditionType.NOT) == ConditionType.NOT) isMet = !isMet;
+
+    //        return isMet;
+    //    }
+
+    //    public override string ToString()
+    //    {
+    //        string _operator = "";
+
+    //        bool IsFloatToBool(float value)
+    //        {
+    //            return value == 1f ? true : false;
+    //        }
+
+    //        if ((ConditionType & ConditionType.NOT) == ConditionType.NOT) _operator += '!';
+    //        if ((ConditionType & ConditionType.LSS) == ConditionType.LSS) _operator += '<';
+    //        if ((ConditionType & ConditionType.QTR) == ConditionType.QTR) _operator += '>';
+    //        if ((ConditionType & ConditionType.EQU) == ConditionType.EQU) _operator += '=';
+
+    //        if (_operator == "=") _operator += '=';
+
+    //        if (Parameter is BoolParameter bParam)
+    //            return $"({IsFloatToBool(Parameter.Value)} {_operator} {IsFloatToBool(CompareTo)}) = {ConditionIsMet()}";
+    //        else
+    //            return $"({Parameter.Value} {_operator} {CompareTo}) = {ConditionIsMet()}";
+    //    }
+    //}
     #endregion
 }
