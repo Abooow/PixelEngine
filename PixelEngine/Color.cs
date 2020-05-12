@@ -6,10 +6,18 @@ namespace PixelEngine
 {
 	public struct Color
 	{
-		public byte R { get; private set; }
-		public byte G { get; private set; }
-		public byte B { get; private set; }
-		public byte A { get; private set; }
+		public byte R;
+		public byte G;
+		public byte B;
+		public byte A;
+
+		public Color(uint argb)
+		{
+			A = (byte)(argb & 0xFF);
+			B = (byte)((argb >> 8) & 0xFF);
+			G = (byte)((argb >> 16) & 0xFF);
+			R = (byte)((argb >> 24) & 0xFF);
+		}
 
 		public Color(byte grey, byte alpha = 255) : this(grey, grey, grey, alpha)
 		{
@@ -34,8 +42,8 @@ namespace PixelEngine
 		public enum Mode
 		{
 			Normal,
-			Adjective,
-			Negative,
+			Addetive,
+			Negation,
 			Multiply,
 			Xor,
 			Mask,
@@ -188,7 +196,7 @@ namespace PixelEngine
 
 		public static float[] Normalize(Color color)
 		{
-			return new float[]{ color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f };
+			return new float[] { color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f };
 		}
 
 		public static Color Lerp(Color a, Color b, float fraction)
@@ -208,12 +216,12 @@ namespace PixelEngine
 
 		public static Color operator +(Color a, Color b)
 		{
-			return new Color(a.R + b.R, a.G + b.G, a.B + b.B, a.A + b.A);
+			return new Color(a.R + b.R, a.G + b.G, a.B + b.B);
 		}
 
 		public static Color operator -(Color a, Color b)
 		{
-			return new Color(a.R - b.R, a.G - b.G, a.B - b.B, a.A - b.A);
+			return new Color(a.R - b.R, a.G - b.G, a.B - b.B);
 		}
 
 		public static Color operator *(Color a, Color b)
@@ -223,7 +231,7 @@ namespace PixelEngine
 
 		public static Color operator ^(Color a, Color b)
 		{
-			return new Color(a.R ^ b.R, a.G ^ b.G, a.B ^ b.B, a.A ^ b.A);
+			return new Color(a.R ^ b.R, a.G ^ b.G, a.B ^ b.B);
 		}
 
 		public static bool operator ==(Color a, Color b)

@@ -8,8 +8,11 @@ namespace PixelEngine.Utilities
 {
     public class Animator<T>
     {
-        public Animation<T> CurrentAnimation => currentAnimatorState.Animation;
-        public T CurrentAnimationValue => currentAnimatorState.Animation.Value;
+        private static T defaultT = default;
+        private static Animation<T> defaultAnim = default;
+
+        public Animation<T> CurrentAnimation => currentAnimatorState == null ? defaultAnim : currentAnimatorState.Animation;
+        public T CurrentAnimationValue => currentAnimatorState == null ? defaultT : currentAnimatorState.Animation.Value;
         public AnimatorState<T> CurrentAnimatorState
         {
             get => currentAnimatorState;
@@ -20,6 +23,7 @@ namespace PixelEngine.Utilities
                 currentAnimatorState.Animation.Start();
             }
         }
+        public AnimatorState<T> AnyState { get; private set; }
 
         private AnimatorState<T> currentAnimatorState;
         private List<FloatParameter> parameters;
@@ -31,6 +35,8 @@ namespace PixelEngine.Utilities
         {
             parameters = new List<FloatParameter>();
             animatorStates = new List<AnimatorState<T>>();
+            AnyState = new AnimatorState<T>("AnyState", null);
+            animatorStates.Add(AnyState);
         }
 
         public void SetCurrentAnimatorState(AnimatorState<T> newState)
@@ -41,7 +47,7 @@ namespace PixelEngine.Utilities
 
         public void AddState(AnimatorState<T> state)
         {
-            if (!animatorStates.Contains(state))
+            if (!animatorStates.Contains(state) && state != AnyState)
             {
                 StopAnimation(state.Animation);
                 animatorStates.Add(state);
@@ -49,7 +55,7 @@ namespace PixelEngine.Utilities
                 if (currentAnimatorState == null)
                 {
                     currentAnimatorState = state;
-                    currentAnimatorState.Animation.Start();
+                    currentAnimatorState?.Animation.Start();
                 }
             }
         }
@@ -59,12 +65,15 @@ namespace PixelEngine.Utilities
             if (!parameters.Contains(parameter)) parameters.Add(parameter);
         }
 
-        public void CreateConnection(AnimatorState<T> from, AnimatorState<T> to, bool useExitTime, params Condition[] conditions)
+        public void CreateConnection(AnimatorState<T> from, AnimatorState<T> to, bool useExitTime, bool resetAnimation,  params Condition[] conditions)
         {
+            if (from == to) return;
+            if (to == AnyState) throw new Exception($"You can not connect \"{from.Name}\" to *AnyState*");
+
             AddState(from);
             AddState(to);
 
-            from.CreateConnection(to, useExitTime, conditions.ToList());
+            from.CreateConnection(to, useExitTime, resetAnimation, conditions.ToList());
             foreach (Condition condition in conditions)
                 AddParameter(condition.Parameter);
         }
@@ -72,20 +81,25 @@ namespace PixelEngine.Utilities
         public void Update(float elapsed)
         {
             if (currentAnimatorState == null) return;
-
+            
             CurrentAnimation.Update(elapsed);
 
-            nextState = currentAnimatorState.FindNextState();
+            nextState = AnyState.FindNextState();
+            if (nextState == currentAnimatorState) nextState = null;
+            if (nextState == null) nextState = currentAnimatorState.FindNextState();
             if (nextState != null)
             {
-                StopAnimation(currentAnimatorState.Animation);
+                Connection<T> connection = currentAnimatorState.FindConnection(nextState);
+                if (connection != null && connection.ResetAnimation) StopAnimation(currentAnimatorState.Animation);
                 currentAnimatorState = nextState;
-                currentAnimatorState.Animation.Start();
+                currentAnimatorState.Animation?.Start();
             }
         }
 
         private void StopAnimation(Animation<T> animation)
         {
+            if (animation == null) return;
+
             animation.Reset();
             animation.Stop();
             animation.Automatic = false;
@@ -158,11 +172,16 @@ namespace PixelEngine.Utilities
             return null;
         }
 
-        internal void CreateConnection(AnimatorState<T> to, bool useExitTime, List<Condition> conditions)
+        internal void CreateConnection(AnimatorState<T> to, bool useExitTime, bool resetAnimation, List<Condition> conditions)
         {
             if (connections.Exists((connection) => connection.ConnectedTo == to)) return;
 
-            this.connections.Add(new Connection<T>(this, to, conditions) { HasExitTime = useExitTime });
+            this.connections.Add(new Connection<T>(this, to, conditions) { HasExitTime = useExitTime, ResetAnimation = resetAnimation });
+        }
+
+        public Connection<T> FindConnection(AnimatorState<T> other)
+        {
+            return connections.Find((connection) => connection.ConnectedTo == other);
         }
     }
 
@@ -170,6 +189,7 @@ namespace PixelEngine.Utilities
     {
         public AnimatorState<T> ConnectedFrom;
         public AnimatorState<T> ConnectedTo;
+        public bool ResetAnimation;
         public bool HasExitTime;
 
         private List<Condition> conditions;
@@ -183,6 +203,7 @@ namespace PixelEngine.Utilities
             this.conditions = conditions;
             this.ConnectedFrom = connectedFrom;
             this.ConnectedTo = connectedTo;
+            ResetAnimation = true;
             HasExitTime = false;
         }
 
@@ -238,15 +259,37 @@ namespace PixelEngine.Utilities
         }
     }
 
+    [Flags]
     public enum ConditionType
     {
-        LSS = 0b0001,  // Less than
-        QTR = 0b0010,  // Greater than
-        NOT = 0b0100, // Is Not
-        EQU = 0b1000, // Equals
-        LEQ = 0b1001, // Less or Equals than
-        GEQ = 0b1010, // Greater or Equals than
-        NEQ = 0b1100  // Not Equals
+        /// <summary>
+        /// Less than
+        /// </summary>
+        LSS = 0b0001,
+        /// <summary>
+        /// Greater than
+        /// </summary>
+        QTR = 0b0010,
+        /// <summary>
+        /// Is Not
+        /// </summary>
+        NOT = 0b0100,
+        /// <summary>
+        /// Equals
+        /// </summary>
+        EQU = 0b1000,
+        /// <summary>
+        /// Less or Equals than
+        /// </summary>
+        LEQ = 0b1001,
+        /// <summary>
+        /// Greater or Equals than
+        /// </summary>
+        GEQ = 0b1010,
+        /// <summary>
+        /// Not Equals
+        /// </summary>
+        NEQ = 0b1100
     }
 
     public class Condition

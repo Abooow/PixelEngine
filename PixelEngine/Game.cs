@@ -607,18 +607,29 @@ namespace PixelEngine
 					drawTarget[a, b] = pix;
 			}
 
+			Color CalculateAlpha()
+			{
+				Color d = drawTarget[p.X, p.Y];
+				float a = col.A / 255.0f * PixelBlend;
+				float c = 1.0f - a;
+				float r = a * col.R + c * d.R;
+				float g = a * col.G + c * d.G;
+				float b = a * col.B + c * d.B;
+				return new Color((byte)r, (byte)g, (byte)b);
+			}
+
 			switch (ColorMode)
 			{
 				case Color.Mode.Normal:
 					MakePixel(p.X, p.Y, col);
 					break;
 
-				case Color.Mode.Adjective:
-                    if (col.A != 0)
-                        MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] + col);
+				case Color.Mode.Addetive:
+					Color pix1 = CalculateAlpha();
+					MakePixel(p.X, p.Y, pix1 + col);
 					break;
 
-				case Color.Mode.Negative:
+				case Color.Mode.Negation:
                     if (col.A != 0)
                         MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] - col);
 					break;
@@ -639,13 +650,7 @@ namespace PixelEngine
 					break;
 
 				case Color.Mode.Alpha:
-					Color d = drawTarget[p.X, p.Y];
-					float a = col.A / 255.0f * PixelBlend;
-					float c = 1.0f - a;
-					float r = a * col.R + c * d.R;
-					float g = a * col.G + c * d.G;
-					float b = a * col.B + c * d.B;
-					Color pix = new Color((byte)r, (byte)g, (byte)b);
+					Color pix = CalculateAlpha();
 					MakePixel(p.X, p.Y, pix);
 					break;
 
@@ -1073,15 +1078,16 @@ namespace PixelEngine
 			for (int i = 0; i < points.Length - 1; i++)
 				DrawLine(points[i], points[i + 1], col);
 		}
-		public void DrawSprite(Point position, Sprite sprite, Color? color = null)
+		public void DrawSprite(Sprite sprite, Point position, Color? color = null)
 		{
 			if (sprite == null) return;
 
 			Point start = Point.Zero;
 			if (position.X < 0) start.X = -position.X;
 			if (position.Y < 0) start.Y = -position.Y;
+			
 			Point end = sprite.Size;
-			if (position.X + end.X > ScreenWidth) end.X = ScreenWidth - position.X;
+			if (position.X + end.X > ScreenWidth)  end.X = ScreenWidth - position.X;
 			if (position.Y + end.Y > ScreenHeight) end.Y = ScreenHeight - position.Y;
 
             for (int i = start.X; i < end.X; i++)
@@ -1093,9 +1099,40 @@ namespace PixelEngine
 						Draw(position.X + i, position.Y + j, sprite[i, j] * (Color)color);
 				}
 		}
-		public void DrawSprite(Point position, Sprite sprite, Rectangle sourceRect, Color? color = null)
+		public void DrawSprite(Sprite sprite, Point position, Rectangle sourceRect, SpriteEffects spriteEffects, Color? color = null)
 		{
 			if (sprite == null) return;
+
+			bool IsEffect(SpriteEffects effect)
+			{
+				return (spriteEffects & effect) == effect;
+			}
+
+			Point start = Point.Zero;
+			if (position.X < 0) start.X = -position.X;
+			if (position.Y < 0) start.Y = -position.Y;
+
+			Point end = sourceRect.Size;
+			if (position.X + end.X > ScreenWidth)  end.X = ScreenWidth - position.X;
+			if (position.Y + end.Y > ScreenHeight) end.Y = ScreenHeight - position.Y;
+
+			for (int i = start.X; i < end.X; i++)
+			{
+				for (int j = start.Y; j < end.Y; j++)
+				{
+					int sourceX = sourceRect.X + (IsEffect(SpriteEffects.FlipHorizontally) ? end.X - i - start.X : i);
+					int sourceY = sourceRect.Y + (IsEffect(SpriteEffects.FlipVertically)   ? end.Y - j - start.Y : j);
+					if (color == null)
+						Draw(position.X + i, position.Y + j, sprite[sourceX, sourceY]);
+					else
+						Draw(position.X + i, position.Y + j, sprite[sourceX, sourceY] * (Color)color);
+				}
+			}
+		}
+		public void DrawSprite(Sprite sprite, Point position, Rectangle sourceRect, Color? color = null)
+		{
+			if (sprite == null)
+				return;
 
 			Point start = Point.Zero;
 			if (position.X < 0)
@@ -1119,16 +1156,17 @@ namespace PixelEngine
 		}
 		public void Clear(Color color)
 		{
-			Color[] pixels = drawTarget.GetData();
-			for (int i = 0; i < pixels.Length; i++)
-				pixels[i] = color;
+			//Color[] pixels = drawTarget.GetData();
+			//for (int i = 0; i < pixels.Length; i++)
+			//	pixels[i] = color;
+			drawTarget.FillAll(color);
 
-			if (hrText)
-			{
-				pixels = textTarget.GetData();
-				for (int i = 0; i < pixels.Length; i++)
-					pixels[i] = Color.Empty;
-			}
+			//if (hrText)
+			//{
+			//	pixels = textTarget.GetData();
+			//	for (int i = 0; i < pixels.Length; i++)
+			//		pixels[i] = Color.Empty;
+			//}
 		}
 		#endregion
 
@@ -1299,12 +1337,12 @@ namespace PixelEngine
 						break;
 					case Color.Mode.Alpha:
 						Color d = drawTarget[p.X, p.Y];
-						float a = col.A / 255.0f * PixelBlend;
+						float a = col.A * PixelBlend;
 						float c = 1.0f - a;
 						float r = a * col.R + c * d.R;
 						float g = a * col.G + c * d.G;
 						float b = a * col.B + c * d.B;
-						Color pix = new Color((byte)r, (byte)g, (byte)b);
+						Color pix = new Color(r, g, b);
 						if (i >= 0 && i < textTarget.Width && j >= 0 && j < textTarget.Height)
 							textTarget[i, j] = col;
 						break;

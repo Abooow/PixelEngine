@@ -167,7 +167,10 @@ namespace PixelEngine
         public static Sprite Load(string path, params Color[] ignoreColors)
         {
             if (!File.Exists(path))
+            {
+                System.Console.WriteLine($"Failed to load image from \"{path}\"");
                 return new Sprite(8, 8);
+            }
 
             if (path.EndsWith(".spr"))
             {
@@ -207,7 +210,7 @@ namespace PixelEngine
 
                             int i = ((y * spr.Width) + x) * depth / 8;
 
-                            scan0[i] = p.B;
+                            scan0[i + 0] = p.B;
                             scan0[i + 1] = p.G;
                             scan0[i + 2] = p.R;
                             scan0[i + 3] = p.A;
@@ -228,6 +231,16 @@ namespace PixelEngine
             src.colorData.CopyTo(dest.colorData, 0);
         }
 
+        public void FillAll(Color c)
+        {
+            for (int i = 0; i < Width * Height; i++)
+            {
+                colorData[i].R = c.R;
+                colorData[i].G = c.G;
+                colorData[i].B = c.B;
+                colorData[i].A = c.A;
+            }
+        }
 
         public Color this[int x, int y]
         {
@@ -248,5 +261,14 @@ namespace PixelEngine
                 colorData[y * Width + x] = p;
         }
 
+    }
+
+    [System.Flags]
+    public enum SpriteEffects
+    {
+        None = 0b000,
+        FlipHorizontally = 0b001,
+        FlipVertically = 0b010,
+        FlipBoth = 0b11
     }
 }

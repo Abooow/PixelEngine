@@ -714,6 +714,9 @@ namespace PixelEngine
 		[DllImport(PixGl, CallingConvention = CallingConvention.Cdecl), SuppressUnmanagedCodeSecurity]
 		public unsafe static extern void RenderText(int scrW, int scrH, int width, int height, Color* pixels);
 
+		[DllImport(PixGl, CallingConvention = CallingConvention.Cdecl), SuppressUnmanagedCodeSecurity]
+		public unsafe static extern void Clear(int width, int height, Color color);
+
 		#region PixMp3
 		[DllImport(PixGl, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Convert")]
 		public static extern bool ConvertToMp3([MarshalAs(UnmanagedType.LPWStr)] string source, [MarshalAs(UnmanagedType.LPWStr)] string target);

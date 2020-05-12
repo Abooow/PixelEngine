@@ -24,5 +24,12 @@ namespace PixelEngine
 		public static int RandomInt(int min, int max) => rnd.Next(min, max);
 
 		public static float RandomFloat(float min = 0, float max = 1) => (float)rnd.NextDouble() * (max - min) + min;
+		public static float[] RandomFloats(int count)
+		{
+			float[] f = new float[count];
+			for (int i = 0; i < count; i++)
+				f[i] = (float)rnd.NextDouble();
+			return f;
+		}
 	}
 }
