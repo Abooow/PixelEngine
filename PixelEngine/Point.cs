@@ -5,7 +5,21 @@ namespace PixelEngine
 {
 	public struct Point
 	{
-		public int X { get; set; }
+        private static Point zero = new Point(0, 0);
+        private static Point one = new Point(1, 1);
+        private static Point left = new Point(-1, 0);
+        private static Point right = new Point(1, 0);
+        private static Point up = new Point(0, -1);
+        private static Point down = new Point(0, 1);
+
+        public static readonly Point Zero = zero;
+		public static readonly Point One = one;
+		public static readonly Point Left = left;
+		public static readonly Point Right = right;
+		public static readonly Point Up = up;
+		public static readonly Point Down = down;
+
+        public int X { get; set; }
 		public int Y { get; set; }
 
 		public Point(int xy) : this(xy, xy)
@@ -17,13 +31,6 @@ namespace PixelEngine
 			this.X = x;
 			this.Y = y;
 		}
-
-		public static Point Zero => new Point(0, 0);
-		public static Point One => new Point(1, 1);
-		public static Point Left => new Point(-1, 0);
-		public static Point Right => new Point(1, 0);
-		public static Point Up => new Point(0, -1);
-		public static Point Down => new Point(0, 1);
 
 		public Point Abs()
 		{

@@ -17,7 +17,7 @@ namespace PixelEngine.Utilities
         private int index;
 
         private int interval;
-        private float timer;
+        private double timer;
 
         public Animation(T[] values)
         {
@@ -81,7 +81,7 @@ namespace PixelEngine.Utilities
             Value = values[index];
         }
 
-        public void Update(float elapsed)
+        public void Update(double elapsed)
         {
             if (!Running) return;
 

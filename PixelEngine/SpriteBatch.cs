@@ -21,7 +21,7 @@ namespace PixelEngine
 
 		private Game game;
 
-		private Color.Mode colorMode;
+		private PixelMode colorMode;
 		private SortMode sortMode;
 		private Shader shader;
 		private Transform transform;
@@ -36,10 +36,10 @@ namespace PixelEngine
 			batchItemCapacity = capacity;
 			batchItemList = new SpriteBatchItem[capacity];
 
-			pixel = new Sprite(1, 1, Color.Presets.White);
+			pixel = new Sprite(1, 1, Color.White);
 		}
 
-		public void Begin(SortMode sortMode = SortMode.Deferred, Color.Mode colorMode = Color.Mode.Normal, Shader shader = null, Transform transform = null)
+		public void Begin(SortMode sortMode = SortMode.Deferred, PixelMode colorMode = PixelMode.Normal, Shader shader = null, Transform transform = null)
 		{
 			if (hasBegun)
 				throw new Exception("A SpriteBatch has already begun.");
@@ -76,14 +76,14 @@ namespace PixelEngine
 			{
 				SpriteBatchItem item = batchItemList[i];
 
-				Color.Mode oldMode = game.ColorMode;
-				game.ColorMode = colorMode;
+				PixelMode oldMode = game.PixelMode;
+				game.PixelMode = colorMode;
 				Transform newTransform = transform.Copy();
 				if (item.Scale.X != 1 && item.Scale.Y != 1) newTransform.Scale(item.Scale.X, item.Scale.Y);
 				if (item.Rotation != 0) newTransform.Rotate(item.Rotation);
 				newTransform.Translate(item.Position.X, item.Position.Y);
 				Transform.DrawSprite(item.Sprite, newTransform, item.Color);
-				game.ColorMode = oldMode;
+				game.PixelMode = oldMode;
 			}
 
 

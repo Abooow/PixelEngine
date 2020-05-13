@@ -78,7 +78,7 @@ namespace PixelEngine.Utilities
                 AddParameter(condition.Parameter);
         }
 
-        public void Update(float elapsed)
+        public void Update(double elapsed)
         {
             if (currentAnimatorState == null) return;
             
@@ -106,22 +106,6 @@ namespace PixelEngine.Utilities
         }
 
         #region Params IO
-        //public float GetFloatValue(string name)
-        //{
-        //    GetParam(name, out Param param);
-
-        //    if (param != null) return param.Value;
-        //    else return -1f;
-        //}
-
-        //public bool GetBoolValue(string name)
-        //{
-        //    GetParam(name, out Param param);
-
-        //    if (param != null) return param.Value == 1f ? true : false;
-        //    else return false;
-        //}
-
         public void SetFloat(string name, float value)
         {
             GetParam(name, out Param param);
@@ -234,295 +218,229 @@ namespace PixelEngine.Utilities
     }
 
     #region Conditions
-    public interface Param
-    {
-        string Name { get; set; }
-        void SetValue(object value);
-        bool IsLessThan(object other);
-        bool IsMoreThan(object other);
-        bool IsEqualTo(object other);
-    }
-
-    public interface Parameter<T> : Param
-    {
-        T Value { get; set; }
-    }
-
-    public class FloatParameter : Parameter<float>
-    {
-        public string Name { get; set; }
-        public float Value { get; set; }
-
-        public FloatParameter(string name) : this(name, 0f)
-        {
-        }
-
-        public FloatParameter(string name, float value)
-        {
-            Name = name;
-            Value = value;
-        }
-
-        public void SetValue(object value)
-        {
-            if (value.IsNumeric(out double number)) Value = (float)number;
-        }
-
-        public bool IsEqualTo(object other)
-        {
-            if (other == null) return false;
-
-            bool isNum = other.IsNumeric(out double number);
-            if (isNum) return Value  == number;
-            return false;
-        }
-
-        public bool IsLessThan(object other)
-        {
-            if (other == null)
-                return false;
-
-            bool isNum = other.IsNumeric(out double number);
-            if (isNum) return Value < number;
-            return false;
-        }
-
-        public bool IsMoreThan(object other)
-        {
-            if (other == null) return false;
-
-            bool isNum = other.IsNumeric(out double number);
-            if (isNum) return Value > number;
-            return false;
-        }
-    }
-
-    public class BoolParameter : Parameter<bool>
-    {
-        public string Name { get; set; }
-        public bool Value { get; set; }
-
-        public BoolParameter(string name) : this(name, false)
-        {
-        }
-
-        public BoolParameter(string name, bool value)
-        {
-            Name = name;
-            Value = value;
-        }
-
-        public void SetValue(object value)
-        {
-            if (value == null) return;
-
-            bool isNum = value.IsNumeric(out double number);
-            if (value is bool vBool) Value = vBool;
-            if (isNum) Value = (number == 1) ? true : false;
-        }
-
-        public bool IsLessThan(object other)
-        {
-            if (other == null) return false;
-
-            bool isNum = other.IsNumeric(out double number);
-            if (other is bool oBool) return Value ? oBool ? false : false : true;
-            if (isNum) return Value ? number == 1 ? false : number == 0 ? false : true : false;
-            return false;
-        }
-
-        public bool IsMoreThan(object other)
-        {
-            if (other == null) return false;
-
-            bool isNum = other.IsNumeric(out double number);
-            if (other is bool oBool) return Value ? oBool ? false : true : false;
-            if (isNum) return Value ? number == 1 ? false : number == 0 ? true : false : false;
-            return false;
-        }
-
-        public bool IsEqualTo(object other)
-        {
-            if (other == null) return false;
-
-            bool isNum = other.IsNumeric(out double number);
-            if (other is bool oBool) return Value ? oBool ? true : false : !oBool ? true : false;
-            if (isNum) return Value ? number == 1 ? true : number == 0 ? false : false : number == 0 ? true : false;
-            return false;
-        }
-    }
-
-    public class EnumParameter : Parameter<Enum>
-    {
-        public string Name { get; set; }
-        public Enum Value { get; set; }
-
-        public EnumParameter(string name, Enum value)
-        {
-            Name = name;
-            Value = value;
-        }
-
-        public void SetValue(object value)
-        {
-            if (value == null) return;
-
-            if (value is Enum vEnum && vEnum.GetType() == Value.GetType()) Value = vEnum; 
-        }
-
-        public bool IsEqualTo(object other)
-        {
-            if (other == null) return false;
-
-            if (other is Enum oEnum && oEnum.GetType() == Value.GetType()) return Value.GetHashCode() == other.GetHashCode();
-            return false;
-        }
-
-        public bool IsLessThan(object other)
-        {
-            if (other == null)
-                return false;
-
-            if (other is Enum oEnum && oEnum.GetType() == Value.GetType()) return Value.GetHashCode() < other.GetHashCode();
-            return false;
-        }
-
-        public bool IsMoreThan(object other)
-        {
-            if (other == null)
-                return false;
-
-            if (other is Enum oEnum && oEnum.GetType() == Value.GetType()) return Value.GetHashCode() > other.GetHashCode();
-            return false;
-        }
-    }
-
-    [Flags]
-    public enum ConditionType
-    {
-        /// <summary>
-        /// Less than
-        /// </summary>
-        LSS = 0b0001,
-        /// <summary>
-        /// Greater than
-        /// </summary>
-        QTR = 0b0010,
-        /// <summary>
-        /// Is Not
-        /// </summary>
-        NOT = 0b0100,
-        /// <summary>
-        /// Equals
-        /// </summary>
-        EQU = 0b1000,
-        /// <summary>
-        /// Less or Equals than
-        /// </summary>
-        LEQ = 0b1001,
-        /// <summary>
-        /// Greater or Equals than
-        /// </summary>
-        GEQ = 0b1010,
-        /// <summary>
-        /// Not Equals
-        /// </summary>
-        NEQ = 0b1100
-    }
-
-    public class Condition
-    {
-        public Param Parameter;
-        public object CompareTo;
-        public ConditionType ConditionType;
-
-        public Condition(Param parameter, object compareTo, ConditionType condition)
-        {
-            Parameter = parameter;
-            CompareTo = compareTo;
-            ConditionType = condition;
-        }
-
-        public bool ConditionIsMet()
-        {
-            bool isMet = false;
-
-            if ((ConditionType & ConditionType.LSS) == ConditionType.LSS && !isMet) isMet = Parameter.IsLessThan(CompareTo);
-            if ((ConditionType & ConditionType.QTR) == ConditionType.QTR && !isMet) isMet = Parameter.IsMoreThan(CompareTo);
-            if ((ConditionType & ConditionType.EQU) == ConditionType.EQU && !isMet) isMet = Parameter.IsEqualTo(CompareTo);
-            if ((ConditionType & ConditionType.NOT) == ConditionType.NOT) isMet = !isMet;
-
-            return isMet;
-        }
-
-        public override string ToString()
-        {
-            string _operator = "";
-
-            if ((ConditionType & ConditionType.NOT) == ConditionType.NOT) _operator += '!';
-            if ((ConditionType & ConditionType.LSS) == ConditionType.LSS) _operator += '<';
-            if ((ConditionType & ConditionType.QTR) == ConditionType.QTR) _operator += '>';
-            if ((ConditionType & ConditionType.EQU) == ConditionType.EQU) _operator += '=';
-
-            if (_operator == "=") _operator += '=';
-
-            return $"({Parameter.ToString()} {_operator} {CompareTo}) = {ConditionIsMet()}";
-        }
-    }
-    //public class FloatParameter
+    //public interface Param
     //{
-    //    public string Name;
-    //    public float Value;
+    //    string Name { get; set; }
 
-    //    public FloatParameter(string name)
+    //    void SetValue(object value);
+    //    bool IsLessThan(object other);
+    //    bool IsMoreThan(object other);
+    //    bool IsEqualTo(object other);
+    //    string AsString();
+    //}
+
+    //public interface Parameter<T> : Param
+    //{
+    //    T Value { get; set; }
+    //}
+
+    //public class FloatParameter : Parameter<float>
+    //{
+    //    public string Name { get; set; }
+    //    public float Value { get; set; }
+
+    //    public FloatParameter(string name) : this(name, 0f)
     //    {
-    //        Name = name;
     //    }
 
     //    public FloatParameter(string name, float value)
     //    {
+    //        Name = name;
     //        Value = value;
     //    }
+
+    //    public void SetValue(object value)
+    //    {
+    //        if (value.IsNumeric(out double number)) Value = (float)number;
+    //    }
+
+    //    public bool IsEqualTo(object other)
+    //    {
+    //        if (other == null) return false;
+
+    //        bool isNum = other.IsNumeric(out double number);
+    //        if (isNum) return Value  == number;
+    //        return false;
+    //    }
+
+    //    public bool IsLessThan(object other)
+    //    {
+    //        if (other == null)
+    //            return false;
+
+    //        bool isNum = other.IsNumeric(out double number);
+    //        if (isNum) return Value < number;
+    //        return false;
+    //    }
+
+    //    public bool IsMoreThan(object other)
+    //    {
+    //        if (other == null) return false;
+
+    //        bool isNum = other.IsNumeric(out double number);
+    //        if (isNum) return Value > number;
+    //        return false;
+    //    }
+
+    //    public string AsString()
+    //    {
+    //        return Value.ToString();
+    //    }
     //}
 
-    //public class BoolParameter : FloatParameter
+    //public class BoolParameter : Parameter<bool>
     //{
-    //    public BoolParameter(string name) : base(name)
+    //    public string Name { get; set; }
+    //    public bool Value { get; set; }
+
+    //    public BoolParameter(string name) : this(name, false)
     //    {
     //    }
 
-    //    public BoolParameter(string name, bool value) : base(name)
+    //    public BoolParameter(string name, bool value)
     //    {
-    //        Value = value ? 1f : 0f;
+    //        Name = name;
+    //        Value = value;
     //    }
 
-    //    public void ChangeValue(bool value)
+    //    public void SetValue(object value)
     //    {
-    //        Value = value ? 1f : 0f;
+    //        if (value == null) return;
+
+    //        bool isNum = value.IsNumeric(out double number);
+    //        if (value is bool vBool) Value = vBool;
+    //        if (isNum) Value = (number == 1) ? true : false;
     //    }
 
-    //    public void ChangeValue(float value)
+    //    public bool IsLessThan(object other)
     //    {
-    //        Value = value == 1f ? 1f : 0f;
+    //        if (other == null) return false;
+
+    //        bool isNum = other.IsNumeric(out double number);
+    //        if (other is bool oBool) return Value ? oBool ? false : false : true;
+    //        if (isNum) return Value ? number == 1 ? false : number == 0 ? false : true : false;
+    //        return false;
+    //    }
+
+    //    public bool IsMoreThan(object other)
+    //    {
+    //        if (other == null) return false;
+
+    //        bool isNum = other.IsNumeric(out double number);
+    //        if (other is bool oBool) return Value ? oBool ? false : true : false;
+    //        if (isNum) return Value ? number == 1 ? false : number == 0 ? true : false : false;
+    //        return false;
+    //    }
+
+    //    public bool IsEqualTo(object other)
+    //    {
+    //        if (other == null) return false;
+
+    //        bool isNum = other.IsNumeric(out double number);
+    //        if (other is bool oBool) return Value ? oBool ? true : false : !oBool ? true : false;
+    //        if (isNum) return Value ? number == 1 ? true : number == 0 ? false : false : number == 0 ? true : false;
+    //        return false;
+    //    }
+
+    //    public string AsString()
+    //    {
+    //        return Value.ToString();
     //    }
     //}
+
+    //public class EnumParameter : Parameter<Enum>
+    //{
+    //    public string Name { get; set; }
+    //    public Enum Value { get; set; }
+
+    //    public EnumParameter(string name, Enum value)
+    //    {
+    //        Name = name;
+    //        Value = value;
+    //    }
+
+    //    public void SetValue(object value)
+    //    {
+    //        if (value == null) return;
+
+    //        if (value is Enum vEnum && vEnum.GetType() == Value.GetType()) Value = vEnum; 
+    //    }
+
+    //    public bool IsEqualTo(object other)
+    //    {
+    //        if (other == null) return false;
+
+    //        if (other is Enum oEnum && oEnum.GetType() == Value.GetType()) return Value.GetHashCode() == other.GetHashCode();
+    //        return false;
+    //    }
+
+    //    public bool IsLessThan(object other)
+    //    {
+    //        if (other == null)
+    //            return false;
+
+    //        if (other is Enum oEnum && oEnum.GetType() == Value.GetType()) return Value.GetHashCode() < other.GetHashCode();
+    //        return false;
+    //    }
+
+    //    public bool IsMoreThan(object other)
+    //    {
+    //        if (other == null)
+    //            return false;
+
+    //        if (other is Enum oEnum && oEnum.GetType() == Value.GetType()) return Value.GetHashCode() > other.GetHashCode();
+    //        return false;
+    //    }
+
+    //    public string AsString()
+    //    {
+    //        return Value.ToString();
+    //    }
+    //}
+
+    //[Flags]
+    //public enum ConditionType
+    //{
+    //    /// <summary>
+    //    /// Less than
+    //    /// </summary>
+    //    LSS = 0b0001,
+    //    /// <summary>
+    //    /// Greater than
+    //    /// </summary>
+    //    QTR = 0b0010,
+    //    /// <summary>
+    //    /// Is Not
+    //    /// </summary>
+    //    NOT = 0b0100,
+    //    /// <summary>
+    //    /// Equals
+    //    /// </summary>
+    //    EQU = 0b1000,
+    //    /// <summary>
+    //    /// Less or Equals than
+    //    /// </summary>
+    //    LEQ = 0b1001,
+    //    /// <summary>
+    //    /// Greater or Equals than
+    //    /// </summary>
+    //    GEQ = 0b1010,
+    //    /// <summary>
+    //    /// Not Equals
+    //    /// </summary>
+    //    NEQ = 0b1100
+    //}
+
     //public class Condition
     //{
-    //    public FloatParameter Parameter;
-    //    public float CompareTo;
+    //    public Param Parameter;
+    //    public object CompareTo;
     //    public ConditionType ConditionType;
 
-    //    public Condition(FloatParameter parameter, float compareTo, ConditionType condition)
+    //    public Condition(Param parameter, object compareTo, ConditionType condition)
     //    {
     //        Parameter = parameter;
     //        CompareTo = compareTo;
-    //        ConditionType = condition;
-    //    }
-
-    //    public Condition(FloatParameter parameter, bool compareTo, ConditionType condition)
-    //    {
-    //        Parameter = parameter;
-    //        CompareTo = compareTo ? 1f : 0f;
     //        ConditionType = condition;
     //    }
 
@@ -530,9 +448,9 @@ namespace PixelEngine.Utilities
     //    {
     //        bool isMet = false;
 
-    //        if ((ConditionType & ConditionType.LSS) == ConditionType.LSS && !isMet) isMet = Parameter.Value < CompareTo;
-    //        if ((ConditionType & ConditionType.QTR) == ConditionType.QTR && !isMet) isMet = Parameter.Value > CompareTo;
-    //        if ((ConditionType & ConditionType.EQU) == ConditionType.EQU && !isMet) isMet = Parameter.Value == CompareTo;
+    //        if ((ConditionType & ConditionType.LSS) == ConditionType.LSS && !isMet) isMet = Parameter.IsLessThan(CompareTo);
+    //        if ((ConditionType & ConditionType.QTR) == ConditionType.QTR && !isMet) isMet = Parameter.IsMoreThan(CompareTo);
+    //        if ((ConditionType & ConditionType.EQU) == ConditionType.EQU && !isMet) isMet = Parameter.IsEqualTo(CompareTo);
     //        if ((ConditionType & ConditionType.NOT) == ConditionType.NOT) isMet = !isMet;
 
     //        return isMet;
@@ -542,11 +460,6 @@ namespace PixelEngine.Utilities
     //    {
     //        string _operator = "";
 
-    //        bool IsFloatToBool(float value)
-    //        {
-    //            return value == 1f ? true : false;
-    //        }
-
     //        if ((ConditionType & ConditionType.NOT) == ConditionType.NOT) _operator += '!';
     //        if ((ConditionType & ConditionType.LSS) == ConditionType.LSS) _operator += '<';
     //        if ((ConditionType & ConditionType.QTR) == ConditionType.QTR) _operator += '>';
@@ -554,10 +467,7 @@ namespace PixelEngine.Utilities
 
     //        if (_operator == "=") _operator += '=';
 
-    //        if (Parameter is BoolParameter bParam)
-    //            return $"({IsFloatToBool(Parameter.Value)} {_operator} {IsFloatToBool(CompareTo)}) = {ConditionIsMet()}";
-    //        else
-    //            return $"({Parameter.Value} {_operator} {CompareTo}) = {ConditionIsMet()}";
+    //        return $"({Parameter.AsString()} {_operator} {CompareTo}) = {ConditionIsMet()}";
     //    }
     //}
     #endregion

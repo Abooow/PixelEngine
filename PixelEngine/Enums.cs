@@ -32,4 +32,84 @@
 		BackToFront,
 		FrontToBack
 	}
+
+    public enum PixelMode
+    {
+        Normal,
+        Addetive,
+        Negation,
+        Multiply,
+        Xor,
+        Mask,
+        Alpha,
+        Custom
+    }
+
+    #region Flags
+    [System.Flags]
+    public enum SpriteEffects
+    {
+        None = 0b000,
+
+        FlipHorizontally = 0b001,
+        FlipVertically = 0b010,
+        FlipBoth = 0b11
+    }
+
+    [System.Flags]
+    public enum Direction
+    {
+        Undefined = 0b000001,
+
+        North = 0b00010,
+        South = 0b00100,
+        West  = 0b01000,
+        East  = 0b10000,
+
+        Up    = North,
+        Down  = South,
+        Left  = West,
+        Right = East,
+
+        Vertically   = North | South,
+        Horizontally = West  | East
+    }
+
+    [System.Flags]
+    public enum ConditionType
+    {
+        /// <summary>
+        /// Logical AND, can not be combined with other ConditionTypes
+        /// </summary>
+        AND = 0b0000,
+        /// <summary>
+        /// Less than
+        /// </summary>
+        LSS = 0b0001,
+        /// <summary>
+        /// Greater than
+        /// </summary>
+        QTR = 0b0010,
+        /// <summary>
+        /// Is Not
+        /// </summary>
+        NOT = 0b0100,
+        /// <summary>
+        /// Equals
+        /// </summary>
+        EQU = 0b1000,
+        /// <summary>
+        /// Less or Equals than
+        /// </summary>
+        LEQ = 0b1001,
+        /// <summary>
+        /// Greater or Equals than
+        /// </summary>
+        GEQ = 0b1010,
+        /// <summary>
+        /// Not Equals
+        /// </summary>
+        NEQ = 0b1100
+    }
+    #endregion
 }

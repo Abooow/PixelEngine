@@ -19,7 +19,7 @@ namespace PixelEngine
 		public int MouseY { get; private set; }
         public Point MousePosition => new Point(MouseX, MouseY);
 		public SpriteBatch SpriteBatch { get; private set; }
-		public Color.Mode ColorMode { get; set; } = Color.Mode.Normal;
+		public PixelMode PixelMode { get; set; } = PixelMode.Normal;
 		public Font Font { get; set; }
 		public float PixelBlend { get => pixBlend; set => pixBlend = Constrain(value, 0f, 1f); }
 		public long FrameCount { get; private set; }
@@ -55,7 +55,7 @@ namespace PixelEngine
 			set
 			{
 				shader = value;
-				ColorMode = shader != null ? Color.Mode.Custom : Color.Mode.Normal;
+				PixelMode = shader != null ? PixelMode.Custom : PixelMode.Normal;
 			}
 		}
 		public Sprite DrawTarget
@@ -115,7 +115,7 @@ namespace PixelEngine
 		private Input noneMouse;
 
 		private bool delaying;
-		private float delayTime;
+		private double delayTime;
 
 		private Shader shader;
 
@@ -187,7 +187,7 @@ namespace PixelEngine
 				{
 					t2 = DateTime.Now;
 					Clock.Elapsed = t2 - t1;
-					float elapsed = (float)Clock.Elapsed.TotalSeconds;
+					double elapsed = Clock.Elapsed.TotalSeconds;
 					t1 = t2;
 
 					if (frameTimer != null && !frameTimer.Tick())
@@ -213,7 +213,7 @@ namespace PixelEngine
 
 					if (ShowFPS)
 					{
-						SetWindowText(Handle, AppName + $" - {1f / elapsed}FPS");
+						SetWindowText(Handle, AppName + $" - {1 / elapsed}FPS");
 					}
 					OnUpdate(elapsed);
 
@@ -428,6 +428,10 @@ namespace PixelEngine
 			}
 			return screen;
 		}
+        public Color[] GetScreenPixelsRaw()
+        {
+            return defDrawTarget.GetData();
+        }
 		#endregion
 
 		#region Math
@@ -618,43 +622,43 @@ namespace PixelEngine
 				return new Color((byte)r, (byte)g, (byte)b);
 			}
 
-			switch (ColorMode)
+			switch (PixelMode)
 			{
-				case Color.Mode.Normal:
+				case PixelMode.Normal:
 					MakePixel(p.X, p.Y, col);
 					break;
 
-				case Color.Mode.Addetive:
+				case PixelMode.Addetive:
 					Color pix1 = CalculateAlpha();
 					MakePixel(p.X, p.Y, pix1 + col);
 					break;
 
-				case Color.Mode.Negation:
+				case PixelMode.Negation:
                     if (col.A != 0)
                         MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] - col);
 					break;
 
-				case Color.Mode.Multiply:
+				case PixelMode.Multiply:
                     if (col.A != 0)
                         MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] * col);
 					break;
 
-				case Color.Mode.Xor:
+				case PixelMode.Xor:
                     if (col.A != 0)
                         MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] ^ col);
 					break;
 
-				case Color.Mode.Mask:
+				case PixelMode.Mask:
 					if (col.A == 255)
 						MakePixel(p.X, p.Y, col);
 					break;
 
-				case Color.Mode.Alpha:
+				case PixelMode.Alpha:
 					Color pix = CalculateAlpha();
 					MakePixel(p.X, p.Y, pix);
 					break;
 
-				case Color.Mode.Custom:
+				case PixelMode.Custom:
 					MakePixel(p.X, p.Y, Shader.Calculate(p.X, p.Y, drawTarget[p.X, p.Y], col));
 					break;
 			}
@@ -903,6 +907,21 @@ namespace PixelEngine
 		{
 			DrawFilledRect(rect.Position, rect.Width, rect.Height, color);
 		}
+        public void DrawRoundedRect(Rectangle rect, int radius, Color color)
+        {
+            if (radius * 2 >= rect.Width)  radius = rect.Width / 2 - 1;
+            if (radius * 2 >= rect.Height) radius = rect.Height / 2 - 1;
+
+            int d = radius * 2;
+
+            DrawFilledRect(new Rectangle(rect.X + radius, rect.Y, rect.Width - d, rect.Height), color);
+            DrawFilledRect(new Rectangle(rect.X, rect.Y + radius, rect.Width, rect.Height - d), color);
+
+            DrawFilledCircle(rect.Position + radius, radius, color);
+            DrawFilledCircle(rect.Position + new Point(rect.Width - radius - 1, radius), radius, color);
+            DrawFilledCircle(rect.Position + new Point(radius, rect.Height - radius - 1), radius, color);
+            DrawFilledCircle(rect.Position + rect.Size - radius - 1, radius, color);
+        }
 		public void DrawTriangle(Point p1, Point p2, Point p3, Color col)
 		{
 			DrawLine(p1, p2, col);
@@ -1099,6 +1118,31 @@ namespace PixelEngine
 						Draw(position.X + i, position.Y + j, sprite[i, j] * (Color)color);
 				}
 		}
+		public void DrawSprite(Sprite sprite, Point position, Rectangle sourceRect, Color? color = null)
+		{
+			if (sprite == null)
+				return;
+
+			Point start = Point.Zero;
+			if (position.X < 0)
+				start.X = -position.X;
+			if (position.Y < 0)
+				start.Y = -position.Y;
+			Point end = sourceRect.Size;
+			if (position.X + end.X > ScreenWidth)
+				end.X = ScreenWidth - position.X;
+			if (position.Y + end.Y > ScreenHeight)
+				end.Y = ScreenHeight - position.Y;
+
+			for (int i = start.X; i < end.X; i++)
+				for (int j = start.Y; j < end.Y; j++)
+				{
+					if (color == null)
+						Draw(position.X + i, position.Y + j, sprite[i + sourceRect.X, j + sourceRect.Y]);
+					else
+						Draw(position.X + i, position.Y + j, sprite[i + sourceRect.X, j + sourceRect.Y] * (Color)color);
+				}
+		}
 		public void DrawSprite(Sprite sprite, Point position, Rectangle sourceRect, SpriteEffects spriteEffects, Color? color = null)
 		{
 			if (sprite == null) return;
@@ -1128,31 +1172,6 @@ namespace PixelEngine
 						Draw(position.X + i, position.Y + j, sprite[sourceX, sourceY] * (Color)color);
 				}
 			}
-		}
-		public void DrawSprite(Sprite sprite, Point position, Rectangle sourceRect, Color? color = null)
-		{
-			if (sprite == null)
-				return;
-
-			Point start = Point.Zero;
-			if (position.X < 0)
-				start.X = -position.X;
-			if (position.Y < 0)
-				start.Y = -position.Y;
-			Point end = sourceRect.Size;
-			if (position.X + end.X > ScreenWidth)
-				end.X = ScreenWidth - position.X;
-			if (position.Y + end.Y > ScreenHeight)
-				end.Y = ScreenHeight - position.Y;
-
-			for (int i = start.X; i < end.X; i++)
-				for (int j = start.Y; j < end.Y; j++)
-				{
-					if (color == null)
-						Draw(position.X + i, position.Y + j, sprite[i + sourceRect.X, j + sourceRect.Y]);
-					else
-						Draw(position.X + i, position.Y + j, sprite[i + sourceRect.X, j + sourceRect.Y] * (Color)color);
-				}
 		}
 		public void Clear(Color color)
 		{
@@ -1235,13 +1254,13 @@ namespace PixelEngine
 			if (string.IsNullOrWhiteSpace(text))
 				return;
 
-			Color.Mode prev = ColorMode;
-			if (ColorMode != Color.Mode.Custom)
+			PixelMode prev = PixelMode;
+			if (PixelMode != PixelMode.Custom)
 			{
 				if (col.A != 255)
-					ColorMode = Color.Mode.Alpha;
+					PixelMode = PixelMode.Alpha;
 				else
-					ColorMode = Color.Mode.Mask;
+					PixelMode = PixelMode.Mask;
 			}
 
 			int sx = 0;
@@ -1284,8 +1303,8 @@ namespace PixelEngine
 				}
 			}
 
-			if(ColorMode != Color.Mode.Custom)
-				ColorMode = prev;
+			if(PixelMode != PixelMode.Custom)
+				PixelMode = prev;
 		}
 		public void DrawTextHr(Point p, string text, Color col, int scale = 1)
 		{
@@ -1324,18 +1343,18 @@ namespace PixelEngine
 					textTarget = temp;
 				}
 
-				switch (ColorMode)
+				switch (PixelMode)
 				{
-					case Color.Mode.Normal:
+					case PixelMode.Normal:
 						if (i >= 0 && i < textTarget.Width && j >= 0 && j < textTarget.Height)
 							textTarget[i, j] = col;
 						break;
-					case Color.Mode.Mask:
+					case PixelMode.Mask:
 						if (col.A == 255)
 							if (i >= 0 && i < textTarget.Width && j >= 0 && j < textTarget.Height)
 								textTarget[i, j] = col;
 						break;
-					case Color.Mode.Alpha:
+					case PixelMode.Alpha:
 						Color d = drawTarget[p.X, p.Y];
 						float a = col.A * PixelBlend;
 						float c = 1.0f - a;
@@ -1416,7 +1435,7 @@ namespace PixelEngine
 
 		#region Functionality
 		public virtual void OnCreate() { }
-		public virtual void OnUpdate(float elapsed) { }
+		public virtual void OnUpdate(double elapsed) { }
 		public virtual void OnMousePress(Mouse m) { }
 		public virtual void OnMouseRelease(Mouse m) { }
 		public virtual void OnMouseDown(Mouse m) { }

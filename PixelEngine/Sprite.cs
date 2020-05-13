@@ -125,22 +125,22 @@ namespace PixelEngine
             {
                 switch (col & 0xF)
                 {
-                    case 0x0: return Color.Presets.Black;
-                    case 0x1: return Color.Presets.DarkBlue;
-                    case 0x2: return Color.Presets.DarkGreen;
-                    case 0x3: return Color.Presets.DarkCyan;
-                    case 0x4: return Color.Presets.DarkRed;
-                    case 0x5: return Color.Presets.DarkMagenta;
-                    case 0x6: return Color.Presets.DarkYellow;
-                    case 0x7: return Color.Presets.Grey;
-                    case 0x8: return Color.Presets.DarkGrey;
-                    case 0x9: return Color.Presets.Blue;
-                    case 0xA: return Color.Presets.Green;
-                    case 0xB: return Color.Presets.Cyan;
-                    case 0xC: return Color.Presets.Red;
-                    case 0xD: return Color.Presets.Magenta;
-                    case 0xE: return Color.Presets.Yellow;
-                    case 0xF: return Color.Presets.White;
+                    case 0x0: return Color.Black;
+                    case 0x1: return Color.DarkBlue;
+                    case 0x2: return Color.DarkGreen;
+                    case 0x3: return Color.DarkCyan;
+                    case 0x4: return Color.DarkRed;
+                    case 0x5: return Color.DarkMagenta;
+                    case 0x6: return Color.DarkYellow;
+                    case 0x7: return Color.Grey;
+                    case 0x8: return Color.DarkGrey;
+                    case 0x9: return Color.Blue;
+                    case 0xA: return Color.Green;
+                    case 0xB: return Color.Cyan;
+                    case 0xC: return Color.Red;
+                    case 0xD: return Color.Magenta;
+                    case 0xE: return Color.Yellow;
+                    case 0xF: return Color.White;
                 }
 
                 return Color.Empty;
@@ -261,14 +261,5 @@ namespace PixelEngine
                 colorData[y * Width + x] = p;
         }
 
-    }
-
-    [System.Flags]
-    public enum SpriteEffects
-    {
-        None = 0b000,
-        FlipHorizontally = 0b001,
-        FlipVertically = 0b010,
-        FlipBoth = 0b11
     }
 }
