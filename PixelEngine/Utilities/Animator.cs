@@ -135,18 +135,19 @@ namespace PixelEngine.Utilities
 
             if (param is BoolParameter bParam) bParam.Value = value;
         }
+
         public void SetEnum(string name, Enum value)
         {
             GetParam(name, out Param param);
 
-            if (param is EnumParameter eParam && eParam.Value.Equals(value)) eParam.Value = value;
+            if (param is EnumParameter eParam && eParam.Value.GetType() == value.GetType()) eParam.Value = value;
         }
 
-        public void SetParam<T1>(string name, T1 value) where T1 : Parameter<T1>
+        public void SetParam(string name, object value)
         {
             GetParam(name, out Param param);
 
-            if (param is T1 t) t.Value = value;
+            if (param != null) param.SetValue(value);
         }
 
 
@@ -236,6 +237,7 @@ namespace PixelEngine.Utilities
     public interface Param
     {
         string Name { get; set; }
+        void SetValue(object value);
         bool IsLessThan(object other);
         bool IsMoreThan(object other);
         bool IsEqualTo(object other);
@@ -251,19 +253,47 @@ namespace PixelEngine.Utilities
         public string Name { get; set; }
         public float Value { get; set; }
 
+        public FloatParameter(string name) : this(name, 0f)
+        {
+        }
+
+        public FloatParameter(string name, float value)
+        {
+            Name = name;
+            Value = value;
+        }
+
+        public void SetValue(object value)
+        {
+            if (value.IsNumeric(out double number)) Value = (float)number;
+        }
+
         public bool IsEqualTo(object other)
         {
-            throw new NotImplementedException();
+            if (other == null) return false;
+
+            bool isNum = other.IsNumeric(out double number);
+            if (isNum) return Value  == number;
+            return false;
         }
 
         public bool IsLessThan(object other)
         {
-            throw new NotImplementedException();
+            if (other == null)
+                return false;
+
+            bool isNum = other.IsNumeric(out double number);
+            if (isNum) return Value < number;
+            return false;
         }
 
         public bool IsMoreThan(object other)
         {
-            throw new NotImplementedException();
+            if (other == null) return false;
+
+            bool isNum = other.IsNumeric(out double number);
+            if (isNum) return Value > number;
+            return false;
         }
     }
 
@@ -280,6 +310,15 @@ namespace PixelEngine.Utilities
         {
             Name = name;
             Value = value;
+        }
+
+        public void SetValue(object value)
+        {
+            if (value == null) return;
+
+            bool isNum = value.IsNumeric(out double number);
+            if (value is bool vBool) Value = vBool;
+            if (isNum) Value = (number == 1) ? true : false;
         }
 
         public bool IsLessThan(object other)
@@ -318,19 +357,43 @@ namespace PixelEngine.Utilities
         public string Name { get; set; }
         public Enum Value { get; set; }
 
+        public EnumParameter(string name, Enum value)
+        {
+            Name = name;
+            Value = value;
+        }
+
+        public void SetValue(object value)
+        {
+            if (value == null) return;
+
+            if (value is Enum vEnum && vEnum.GetType() == Value.GetType()) Value = vEnum; 
+        }
+
         public bool IsEqualTo(object other)
         {
-            throw new NotImplementedException();
+            if (other == null) return false;
+
+            if (other is Enum oEnum && oEnum.GetType() == Value.GetType()) return Value.GetHashCode() == other.GetHashCode();
+            return false;
         }
 
         public bool IsLessThan(object other)
         {
-            throw new NotImplementedException();
+            if (other == null)
+                return false;
+
+            if (other is Enum oEnum && oEnum.GetType() == Value.GetType()) return Value.GetHashCode() < other.GetHashCode();
+            return false;
         }
 
         public bool IsMoreThan(object other)
         {
-            throw new NotImplementedException();
+            if (other == null)
+                return false;
+
+            if (other is Enum oEnum && oEnum.GetType() == Value.GetType()) return Value.GetHashCode() > other.GetHashCode();
+            return false;
         }
     }
 
