@@ -43,6 +43,8 @@
     <Compile Include="Font.cs" />
     <Compile Include="Rectangle.cs" />
     <Compile Include="SpriteBatch.cs" />
+    <Compile Include="UI\Button.cs" />
+    <Compile Include="UI\UIHandler.cs" />
     <Compile Include="Utilities\Animation.cs" />
     <Compile Include="Extensions\Extension.cs" />
     <Compile Include="Utilities\Animator.cs" />

@@ -9,8 +9,8 @@ namespace PixelEngine.Utilities
         private static Vector unity2 = new Vector(1, 1, 0);
         private static Vector right = new Vector(1, 0, 0);
         private static Vector left = new Vector(-1, 0, 0);
-        private static Vector up = new Vector(0, 1, 0);
-        private static Vector down = new Vector(0, -1, 0);
+        private static Vector up = new Vector(0, -1, 0);
+        private static Vector down = new Vector(0, 1, 0);
         private static Vector forward = new Vector(0, 0, 1);
         private static Vector backward = new Vector(0, 0, -1);
 
@@ -39,7 +39,8 @@ namespace PixelEngine.Utilities
 
         #region Calculations
         public float Magnitude() => Magnitude(this);
-        public Vector Normalize() => Normalize(this);
+        public Vector Normalized() => Normalize(this);
+        public Vector Normalize() => this = Normalize(this);
 
         public static float Distance(Vector a, Vector b)
         {
