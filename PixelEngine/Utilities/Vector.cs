@@ -24,9 +24,9 @@ namespace PixelEngine.Utilities
         public static readonly Vector Forward = forward;
         public static readonly Vector Backward = backward;
 
-        public float X { get; private set; }
-        public float Y { get; private set; }
-        public float Z { get; private set; }
+        public float X;
+        public float Y;
+        public float Z;
 
         public Vector(float a) : this(a, a, a) { }
         public Vector(float x, float y) : this(x, y, 0) { }

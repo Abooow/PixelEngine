@@ -17,7 +17,7 @@ namespace PixelEngine
 		#region Members
 		public int MouseX { get; private set; }
 		public int MouseY { get; private set; }
-        public Point MousePosition => new Point(MouseX, MouseY);
+		public Point MousePosition => new Point(MouseX, MouseY);
 		public SpriteBatch SpriteBatch { get; private set; }
 		public PixelMode PixelMode { get; set; } = PixelMode.Normal;
 		public Font Font { get; set; }
@@ -74,16 +74,19 @@ namespace PixelEngine
 			}
 		}
 
-		public bool ShowFPS 
-		{ 
+		public bool ShowFPS
+		{
 			get => showFPS;
 			set
 			{
-				if (showFPS && !value) AppName = AppName;
-			
+				if (showFPS && !value)
+					AppName = AppName;
+
 				showFPS = value;
 			}
 		}
+
+		public int FpsFrameCount = 10;
 
 		private Thread gameLoop;
 
@@ -129,10 +132,13 @@ namespace PixelEngine
 		private readonly Input[] mouse = new Input[3];
 		private readonly bool[] newMouse = new bool[3];
 		private readonly bool[] oldMouse = new bool[3];
-        #endregion
 
-        #region Working
-        public void Start()
+		private int currentFrameCount;
+		private double totalElapsedTime;
+		#endregion
+
+		#region Working
+		public void Start()
 		{
 			RegisterClass();
 			CreateWindow();
@@ -153,6 +159,8 @@ namespace PixelEngine
 				FrameRate = frameRate;
 				frameTimer = new Timer(1000.0f / FrameRate);
 			}
+			else
+				frameTimer = new Timer(0);
 
 			Font = Font.Presets.Retro;
 			HandleDrawTarget();
@@ -172,7 +180,8 @@ namespace PixelEngine
 			canvas.Initialize(defDrawTarget, textTarget);
 
 			DateTime t1, t2;
-			t1 = t2 = DateTime.Now;
+			t1 = DateTime.Now;
+			t2 = t1 - TimeSpan.FromMilliseconds(frameTimer.Interval + 5);
 
 			if (frameTimer != null)
 				frameTimer.Init(t1);
@@ -185,37 +194,47 @@ namespace PixelEngine
 			{
 				while (active)
 				{
-					t2 = DateTime.Now;
-					Clock.Elapsed = t2 - t1;
-					double elapsed = Clock.Elapsed.TotalSeconds;
-					t1 = t2;
+					t1 = DateTime.Now;
+					double elapsed = (t1 - t2).TotalMilliseconds;
+					t2 = t1;
+					//Clock.Elapsed = t1 - t2;
 
-					if (frameTimer != null && !frameTimer.Tick())
-						continue;
+					//if (frameTimer != null && !frameTimer.Tick())
+					//	continue;
+					//Console.WriteLine(elapsed);
+					//if (delaying)
+					//{
+					//	delayTime -= elapsed;
 
-					if (delaying)
-					{
-						delayTime -= elapsed;
-
-						if (delayTime <= 0)
-						{
-							delayTime = 0;
-							delaying = false;
-						}
-						else
-						{
-							continue;
-						}
-					}
-
+					//	if (delayTime <= 0)
+					//	{
+					//		delayTime = frameTimer.Interval;
+					//		delaying = false;
+					//	}
+					//	else
+					//	{
+					//		continue;
+					//	}
+					//}
 					if (paused)
 						continue;
 
+					if (frameTimer.Interval != 0)
+						Thread.Sleep((int)(frameTimer.Interval * (frameTimer.Interval / elapsed)));
+
 					if (ShowFPS)
 					{
-						SetWindowText(Handle, AppName + $" - {1 / elapsed}FPS");
+						currentFrameCount++;
+						totalElapsedTime += elapsed;
+						if (currentFrameCount >= FpsFrameCount)
+						{
+							double averageTime = totalElapsedTime / (float)FpsFrameCount;
+							SetWindowText(Handle, AppName + $" - {1000 / averageTime}FPS");
+							totalElapsedTime = averageTime;
+							currentFrameCount = 1;
+						}
 					}
-					OnUpdate(elapsed);
+					OnUpdate(elapsed / 1000);
 
 					HandleKeyboard();
 					HandleMouse();
@@ -420,7 +439,7 @@ namespace PixelEngine
 		public Color[,] GetScreenPixels()
 		{
 			Color[,] screen = new Color[ScreenWidth, ScreenHeight];
-			for (int i = 0; i < ScreenWidth* ScreenHeight; i++)
+			for (int i = 0; i < ScreenWidth * ScreenHeight; i++)
 			{
 				int x = i % ScreenWidth;
 				int y = i / ScreenWidth;
@@ -428,10 +447,10 @@ namespace PixelEngine
 			}
 			return screen;
 		}
-        public Color[] GetScreenPixelsRaw()
-        {
-            return defDrawTarget.GetData();
-        }
+		public Color[] GetScreenPixelsRaw()
+		{
+			return defDrawTarget.GetData();
+		}
 		#endregion
 
 		#region Math
@@ -526,7 +545,7 @@ namespace PixelEngine
 				newMouse[(int)Mouse.Left] = GetKeyState((int)VK.LBUTTON) < 0;
 				newMouse[(int)Mouse.Middle] = GetKeyState((int)VK.MBUTTON) < 0;
 				newMouse[(int)Mouse.Right] = GetKeyState((int)VK.RBUTTON) < 0;
-			
+
 				HandleMouse();
 			}
 		}
@@ -574,27 +593,77 @@ namespace PixelEngine
 		}
 		private void MapKeyboard()
 		{
-			mapKeys[0x41] = Key.A; mapKeys[0x42] = Key.B; mapKeys[0x43] = Key.C; mapKeys[0x44] = Key.D; mapKeys[0x45] = Key.E;
-			mapKeys[0x46] = Key.F; mapKeys[0x47] = Key.G; mapKeys[0x48] = Key.H; mapKeys[0x49] = Key.I; mapKeys[0x4A] = Key.J;
-			mapKeys[0x4B] = Key.K; mapKeys[0x4C] = Key.L; mapKeys[0x4D] = Key.M; mapKeys[0x4E] = Key.N; mapKeys[0x4F] = Key.O;
-			mapKeys[0x50] = Key.P; mapKeys[0x51] = Key.Q; mapKeys[0x52] = Key.R; mapKeys[0x53] = Key.S; mapKeys[0x54] = Key.T;
-			mapKeys[0x55] = Key.U; mapKeys[0x56] = Key.V; mapKeys[0x57] = Key.W; mapKeys[0x58] = Key.X; mapKeys[0x59] = Key.Y;
+			mapKeys[0x41] = Key.A;
+			mapKeys[0x42] = Key.B;
+			mapKeys[0x43] = Key.C;
+			mapKeys[0x44] = Key.D;
+			mapKeys[0x45] = Key.E;
+			mapKeys[0x46] = Key.F;
+			mapKeys[0x47] = Key.G;
+			mapKeys[0x48] = Key.H;
+			mapKeys[0x49] = Key.I;
+			mapKeys[0x4A] = Key.J;
+			mapKeys[0x4B] = Key.K;
+			mapKeys[0x4C] = Key.L;
+			mapKeys[0x4D] = Key.M;
+			mapKeys[0x4E] = Key.N;
+			mapKeys[0x4F] = Key.O;
+			mapKeys[0x50] = Key.P;
+			mapKeys[0x51] = Key.Q;
+			mapKeys[0x52] = Key.R;
+			mapKeys[0x53] = Key.S;
+			mapKeys[0x54] = Key.T;
+			mapKeys[0x55] = Key.U;
+			mapKeys[0x56] = Key.V;
+			mapKeys[0x57] = Key.W;
+			mapKeys[0x58] = Key.X;
+			mapKeys[0x59] = Key.Y;
 			mapKeys[0x5A] = Key.Z;
 
-			mapKeys[(uint)VK.F1] = Key.F1; mapKeys[(uint)VK.F2] = Key.F2; mapKeys[(uint)VK.F3] = Key.F3; mapKeys[(uint)VK.F4] = Key.F4;
-			mapKeys[(uint)VK.F5] = Key.F5; mapKeys[(uint)VK.F6] = Key.F6; mapKeys[(uint)VK.F7] = Key.F7; mapKeys[(uint)VK.F8] = Key.F8;
-			mapKeys[(uint)VK.F9] = Key.F9; mapKeys[(uint)VK.F10] = Key.F10; mapKeys[(uint)VK.F11] = Key.F11; mapKeys[(uint)VK.F12] = Key.F12;
+			mapKeys[(uint)VK.F1] = Key.F1;
+			mapKeys[(uint)VK.F2] = Key.F2;
+			mapKeys[(uint)VK.F3] = Key.F3;
+			mapKeys[(uint)VK.F4] = Key.F4;
+			mapKeys[(uint)VK.F5] = Key.F5;
+			mapKeys[(uint)VK.F6] = Key.F6;
+			mapKeys[(uint)VK.F7] = Key.F7;
+			mapKeys[(uint)VK.F8] = Key.F8;
+			mapKeys[(uint)VK.F9] = Key.F9;
+			mapKeys[(uint)VK.F10] = Key.F10;
+			mapKeys[(uint)VK.F11] = Key.F11;
+			mapKeys[(uint)VK.F12] = Key.F12;
 
-			mapKeys[(uint)VK.DOWN] = Key.Down; mapKeys[(uint)VK.LEFT] = Key.Left; mapKeys[(uint)VK.RIGHT] = Key.Right; mapKeys[(uint)VK.UP] = Key.Up;
+			mapKeys[(uint)VK.DOWN] = Key.Down;
+			mapKeys[(uint)VK.LEFT] = Key.Left;
+			mapKeys[(uint)VK.RIGHT] = Key.Right;
+			mapKeys[(uint)VK.UP] = Key.Up;
 
-			mapKeys[(uint)VK.BACK] = Key.Back; mapKeys[(uint)VK.ESCAPE] = Key.Escape; mapKeys[(uint)VK.RETURN] = Key.Enter; mapKeys[(uint)VK.PAUSE] = Key.Pause;
-			mapKeys[(uint)VK.SCROLL] = Key.Scroll; mapKeys[(uint)VK.TAB] = Key.Tab; mapKeys[(uint)VK.DELETE] = Key.Delete; mapKeys[(uint)VK.HOME] = Key.Home;
-			mapKeys[(uint)VK.END] = Key.End; mapKeys[(uint)VK.PRIOR] = Key.PageUp; mapKeys[(uint)VK.NEXT] = Key.PageDown; mapKeys[(uint)VK.INSERT] = Key.Insert;
-			mapKeys[(uint)VK.SHIFT] = Key.Shift; mapKeys[(uint)VK.CONTROL] = Key.Control;
+			mapKeys[(uint)VK.BACK] = Key.Back;
+			mapKeys[(uint)VK.ESCAPE] = Key.Escape;
+			mapKeys[(uint)VK.RETURN] = Key.Enter;
+			mapKeys[(uint)VK.PAUSE] = Key.Pause;
+			mapKeys[(uint)VK.SCROLL] = Key.Scroll;
+			mapKeys[(uint)VK.TAB] = Key.Tab;
+			mapKeys[(uint)VK.DELETE] = Key.Delete;
+			mapKeys[(uint)VK.HOME] = Key.Home;
+			mapKeys[(uint)VK.END] = Key.End;
+			mapKeys[(uint)VK.PRIOR] = Key.PageUp;
+			mapKeys[(uint)VK.NEXT] = Key.PageDown;
+			mapKeys[(uint)VK.INSERT] = Key.Insert;
+			mapKeys[(uint)VK.SHIFT] = Key.Shift;
+			mapKeys[(uint)VK.CONTROL] = Key.Control;
 			mapKeys[(uint)VK.SPACE] = Key.Space;
 
-			mapKeys[0x30] = Key.K0; mapKeys[0x31] = Key.K1; mapKeys[0x32] = Key.K2; mapKeys[0x33] = Key.K3; mapKeys[0x34] = Key.K4;
-			mapKeys[0x35] = Key.K5; mapKeys[0x36] = Key.K6; mapKeys[0x37] = Key.K7; mapKeys[0x38] = Key.K8; mapKeys[0x39] = Key.K9;
+			mapKeys[0x30] = Key.K0;
+			mapKeys[0x31] = Key.K1;
+			mapKeys[0x32] = Key.K2;
+			mapKeys[0x33] = Key.K3;
+			mapKeys[0x34] = Key.K4;
+			mapKeys[0x35] = Key.K5;
+			mapKeys[0x36] = Key.K6;
+			mapKeys[0x37] = Key.K7;
+			mapKeys[0x38] = Key.K8;
+			mapKeys[0x39] = Key.K9;
 		}
 		#endregion
 
@@ -634,18 +703,18 @@ namespace PixelEngine
 					break;
 
 				case PixelMode.Negation:
-                    if (col.A != 0)
-                        MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] - col);
+					if (col.A != 0)
+						MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] - col);
 					break;
 
 				case PixelMode.Multiply:
-                    if (col.A != 0)
-                        MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] * col);
+					if (col.A != 0)
+						MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] * col);
 					break;
 
 				case PixelMode.Xor:
-                    if (col.A != 0)
-                        MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] ^ col);
+					if (col.A != 0)
+						MakePixel(p.X, p.Y, drawTarget[p.X, p.Y] ^ col);
 					break;
 
 				case PixelMode.Mask:
@@ -666,18 +735,25 @@ namespace PixelEngine
 		public void DrawLine(Point p1, Point p2, Color col)
 		{
 			int x, y, dx, dy, dx1, dy1, px, py, xe, ye, i;
-			dx = p2.X - p1.X; dy = p2.Y - p1.Y;
-			dx1 = Math.Abs(dx); dy1 = Math.Abs(dy);
-			px = 2 * dy1 - dx1; py = 2 * dx1 - dy1;
+			dx = p2.X - p1.X;
+			dy = p2.Y - p1.Y;
+			dx1 = Math.Abs(dx);
+			dy1 = Math.Abs(dy);
+			px = 2 * dy1 - dx1;
+			py = 2 * dx1 - dy1;
 			if (dy1 <= dx1)
 			{
 				if (dx >= 0)
 				{
-					x = p1.X; y = p1.Y; xe = p2.X;
+					x = p1.X;
+					y = p1.Y;
+					xe = p2.X;
 				}
 				else
 				{
-					x = p2.X; y = p2.Y; xe = p1.X;
+					x = p2.X;
+					y = p2.Y;
+					xe = p1.X;
 				}
 
 				Draw(x, y, col);
@@ -689,7 +765,10 @@ namespace PixelEngine
 						px = px + 2 * dy1;
 					else
 					{
-						if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) y = y + 1; else y = y - 1;
+						if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0))
+							y = y + 1;
+						else
+							y = y - 1;
 						px = px + 2 * (dy1 - dx1);
 					}
 					Draw(x, y, col);
@@ -699,11 +778,15 @@ namespace PixelEngine
 			{
 				if (dy >= 0)
 				{
-					x = p1.X; y = p1.Y; ye = p2.Y;
+					x = p1.X;
+					y = p1.Y;
+					ye = p2.Y;
 				}
 				else
 				{
-					x = p2.X; y = p2.Y; ye = p1.Y;
+					x = p2.X;
+					y = p2.Y;
+					ye = p1.Y;
 				}
 
 				Draw(x, y, col);
@@ -715,7 +798,10 @@ namespace PixelEngine
 						py = py + 2 * dx1;
 					else
 					{
-						if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) x = x + 1; else x = x - 1;
+						if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0))
+							x = x + 1;
+						else
+							x = x - 1;
 						py = py + 2 * (dx1 - dy1);
 					}
 					Draw(x, y, col);
@@ -907,21 +993,23 @@ namespace PixelEngine
 		{
 			DrawFilledRect(rect.Position, rect.Width, rect.Height, color);
 		}
-        public void DrawRoundedRect(Rectangle rect, int radius, Color color)
-        {
-            if (radius * 2 >= rect.Width)  radius = rect.Width / 2 - 1;
-            if (radius * 2 >= rect.Height) radius = rect.Height / 2 - 1;
+		public void DrawRoundedRect(Rectangle rect, int radius, Color color)
+		{
+			if (radius * 2 >= rect.Width)
+				radius = rect.Width / 2 - 1;
+			if (radius * 2 >= rect.Height)
+				radius = rect.Height / 2 - 1;
 
-            int d = radius * 2;
+			int d = radius * 2;
 
-            DrawFilledRect(new Rectangle(rect.X + radius, rect.Y, rect.Width - d, rect.Height), color);
-            DrawFilledRect(new Rectangle(rect.X, rect.Y + radius, rect.Width, rect.Height - d), color);
+			DrawFilledRect(new Rectangle(rect.X + radius, rect.Y, rect.Width - d, rect.Height), color);
+			DrawFilledRect(new Rectangle(rect.X, rect.Y + radius, rect.Width, rect.Height - d), color);
 
-            DrawFilledCircle(rect.Position + radius, radius, color);
-            DrawFilledCircle(rect.Position + new Point(rect.Width - radius - 1, radius), radius, color);
-            DrawFilledCircle(rect.Position + new Point(radius, rect.Height - radius - 1), radius, color);
-            DrawFilledCircle(rect.Position + rect.Size - radius - 1, radius, color);
-        }
+			DrawFilledCircle(rect.Position + radius, radius, color);
+			DrawFilledCircle(rect.Position + new Point(rect.Width - radius - 1, radius), radius, color);
+			DrawFilledCircle(rect.Position + new Point(radius, rect.Height - radius - 1), radius, color);
+			DrawFilledCircle(rect.Position + rect.Size - radius - 1, radius, color);
+		}
 		public void DrawTriangle(Point p1, Point p2, Point p3, Color col)
 		{
 			DrawLine(p1, p2, col);
@@ -930,8 +1018,10 @@ namespace PixelEngine
 		}
 		public void DrawFilledTriangle(Point p1, Point p2, Point p3, Color col)
 		{
-			void Swap(ref int a, ref int b) { int t = a; a = b; b = t; }
-			void MakeLine(int sx, int ex, int ny) { for (int i = sx; i <= ex; i++) Draw(i, ny, col); }
+			void Swap(ref int a, ref int b)
+			{ int t = a; a = b; b = t; }
+			void MakeLine(int sx, int ex, int ny)
+			{ for (int i = sx; i <= ex; i++) Draw(i, ny, col); }
 
 			int x1 = p1.X, y1 = p1.Y;
 			int x2 = p2.X, y2 = p2.Y;
@@ -943,17 +1033,27 @@ namespace PixelEngine
 			int signx1, signx2, dx1, dy1, dx2, dy2;
 			int e1, e2;
 			// Sort vertices
-			if (y1 > y2) { Swap(ref y1, ref y2); Swap(ref x1, ref x2); }
-			if (y1 > y3) { Swap(ref y1, ref y3); Swap(ref x1, ref x3); }
-			if (y2 > y3) { Swap(ref y2, ref y3); Swap(ref x2, ref x3); }
+			if (y1 > y2)
+			{ Swap(ref y1, ref y2); Swap(ref x1, ref x2); }
+			if (y1 > y3)
+			{ Swap(ref y1, ref y3); Swap(ref x1, ref x3); }
+			if (y2 > y3)
+			{ Swap(ref y2, ref y3); Swap(ref x2, ref x3); }
 
-			t1x = t2x = x1; y = y1;   // Starting points
-			dx1 = x2 - x1; if (dx1 < 0) { dx1 = -dx1; signx1 = -1; }
-			else signx1 = 1;
+			t1x = t2x = x1;
+			y = y1;   // Starting points
+			dx1 = x2 - x1;
+			if (dx1 < 0)
+			{ dx1 = -dx1; signx1 = -1; }
+			else
+				signx1 = 1;
 			dy1 = y2 - y1;
 
-			dx2 = x3 - x1; if (dx2 < 0) { dx2 = -dx2; signx2 = -1; }
-			else signx2 = 1;
+			dx2 = x3 - x1;
+			if (dx2 < 0)
+			{ dx2 = -dx2; signx2 = -1; }
+			else
+				signx2 = 1;
 			dy2 = y3 - y1;
 
 			if (dy1 > dx1)
@@ -969,14 +1069,18 @@ namespace PixelEngine
 
 			e2 = dx2 >> 1;
 			// Flat top, just process the second half
-			if (y1 == y2) goto next;
+			if (y1 == y2)
+				goto next;
 			e1 = dx1 >> 1;
 
 			for (int i = 0; i < dx1;)
 			{
-				t1xp = 0; t2xp = 0;
-				if (t1x < t2x) { minx = t1x; maxx = t2x; }
-				else { minx = t2x; maxx = t1x; }
+				t1xp = 0;
+				t2xp = 0;
+				if (t1x < t2x)
+				{ minx = t1x; maxx = t2x; }
+				else
+				{ minx = t2x; maxx = t1x; }
 				// process first line until y value is about to change
 				while (i < dx1)
 				{
@@ -985,14 +1089,18 @@ namespace PixelEngine
 					while (e1 >= dx1)
 					{
 						e1 -= dx1;
-						if (changed1) t1xp = signx1;//t1x += signx1;
-						else goto next1;
+						if (changed1)
+							t1xp = signx1;//t1x += signx1;
+						else
+							goto next1;
 					}
-					if (changed1) break;
-					else t1x += signx1;
+					if (changed1)
+						break;
+					else
+						t1x += signx1;
 				}
-				// Move line
-				next1:
+			// Move line
+			next1:
 				// process second line until y value is about to change
 				while (true)
 				{
@@ -1000,29 +1108,45 @@ namespace PixelEngine
 					while (e2 >= dx2)
 					{
 						e2 -= dx2;
-						if (changed2) t2xp = signx2;//t2x += signx2;
-						else goto next2;
+						if (changed2)
+							t2xp = signx2;//t2x += signx2;
+						else
+							goto next2;
 					}
-					if (changed2) break;
-					else t2x += signx2;
+					if (changed2)
+						break;
+					else
+						t2x += signx2;
 				}
-				next2:
-				if (minx > t1x) minx = t1x; if (minx > t2x) minx = t2x;
-				if (maxx < t1x) maxx = t1x; if (maxx < t2x) maxx = t2x;
+			next2:
+				if (minx > t1x)
+					minx = t1x;
+				if (minx > t2x)
+					minx = t2x;
+				if (maxx < t1x)
+					maxx = t1x;
+				if (maxx < t2x)
+					maxx = t2x;
 				MakeLine(minx, maxx, y);    // Draw line from min to max points found on the y
 											// Now increase y
-				if (!changed1) t1x += signx1;
+				if (!changed1)
+					t1x += signx1;
 				t1x += t1xp;
-				if (!changed2) t2x += signx2;
+				if (!changed2)
+					t2x += signx2;
 				t2x += t2xp;
 				y += 1;
-				if (y == y2) break;
+				if (y == y2)
+					break;
 
 			}
-			next:
+		next:
 			// Second half
-			dx1 = x3 - x2; if (dx1 < 0) { dx1 = -dx1; signx1 = -1; }
-			else signx1 = 1;
+			dx1 = x3 - x2;
+			if (dx1 < 0)
+			{ dx1 = -dx1; signx1 = -1; }
+			else
+				signx1 = 1;
 			dy1 = y3 - y2;
 			t1x = x2;
 
@@ -1031,15 +1155,19 @@ namespace PixelEngine
 				Swap(ref dy1, ref dx1);
 				changed1 = true;
 			}
-			else changed1 = false;
+			else
+				changed1 = false;
 
 			e1 = dx1 >> 1;
 
 			for (int i = 0; i <= dx1; i++)
 			{
-				t1xp = 0; t2xp = 0;
-				if (t1x < t2x) { minx = t1x; maxx = t2x; }
-				else { minx = t2x; maxx = t1x; }
+				t1xp = 0;
+				t2xp = 0;
+				if (t1x < t2x)
+				{ minx = t1x; maxx = t2x; }
+				else
+				{ minx = t2x; maxx = t1x; }
 				// process first line until y value is about to change
 				while (i < dx1)
 				{
@@ -1047,14 +1175,19 @@ namespace PixelEngine
 					while (e1 >= dx1)
 					{
 						e1 -= dx1;
-						if (changed1) { t1xp = signx1; break; }//t1x += signx1;
-						else goto next3;
+						if (changed1)
+						{ t1xp = signx1; break; }//t1x += signx1;
+						else
+							goto next3;
 					}
-					if (changed1) break;
-					else t1x += signx1;
-					if (i < dx1) i++;
+					if (changed1)
+						break;
+					else
+						t1x += signx1;
+					if (i < dx1)
+						i++;
 				}
-				next3:
+			next3:
 				// process second line until y value is about to change
 				while (t2x != x3)
 				{
@@ -1062,23 +1195,36 @@ namespace PixelEngine
 					while (e2 >= dx2)
 					{
 						e2 -= dx2;
-						if (changed2) t2xp = signx2;
-						else goto next4;
+						if (changed2)
+							t2xp = signx2;
+						else
+							goto next4;
 					}
-					if (changed2) break;
-					else t2x += signx2;
+					if (changed2)
+						break;
+					else
+						t2x += signx2;
 				}
-				next4:
+			next4:
 
-				if (minx > t1x) minx = t1x; if (minx > t2x) minx = t2x;
-				if (maxx < t1x) maxx = t1x; if (maxx < t2x) maxx = t2x;
+				if (minx > t1x)
+					minx = t1x;
+				if (minx > t2x)
+					minx = t2x;
+				if (maxx < t1x)
+					maxx = t1x;
+				if (maxx < t2x)
+					maxx = t2x;
 				MakeLine(minx, maxx, y);
-				if (!changed1) t1x += signx1;
+				if (!changed1)
+					t1x += signx1;
 				t1x += t1xp;
-				if (!changed2) t2x += signx2;
+				if (!changed2)
+					t2x += signx2;
 				t2x += t2xp;
 				y += 1;
-				if (y > y3) return;
+				if (y > y3)
+					return;
 			}
 		}
 		public void DrawPolygon(Point[] verts, Color col)
@@ -1097,28 +1243,33 @@ namespace PixelEngine
 			for (int i = 0; i < points.Length - 1; i++)
 				DrawLine(points[i], points[i + 1], col);
 		}
-		public void DrawSprite(Sprite sprite, Point position, Color? color = null)
+		public void DrawSprite(Point position, Sprite sprite, Color? color = null)
 		{
-			if (sprite == null) return;
+			if (sprite == null)
+				return;
 
 			Point start = Point.Zero;
-			if (position.X < 0) start.X = -position.X;
-			if (position.Y < 0) start.Y = -position.Y;
-			
-			Point end = sprite.Size;
-			if (position.X + end.X > ScreenWidth)  end.X = ScreenWidth - position.X;
-			if (position.Y + end.Y > ScreenHeight) end.Y = ScreenHeight - position.Y;
+			if (position.X < 0)
+				start.X = -position.X;
+			if (position.Y < 0)
+				start.Y = -position.Y;
 
-            for (int i = start.X; i < end.X; i++)
-                for (int j = start.Y; j < end.Y; j++)
-                {
-                    if (color == null)
+			Point end = sprite.Size;
+			if (position.X + end.X > ScreenWidth)
+				end.X = ScreenWidth - position.X;
+			if (position.Y + end.Y > ScreenHeight)
+				end.Y = ScreenHeight - position.Y;
+
+			for (int i = start.X; i < end.X; i++)
+				for (int j = start.Y; j < end.Y; j++)
+				{
+					if (color == null)
 						Draw(position.X + i, position.Y + j, sprite[i, j]);
 					else
 						Draw(position.X + i, position.Y + j, sprite[i, j] * (Color)color);
 				}
 		}
-		public void DrawSprite(Sprite sprite, Point position, Rectangle sourceRect, Color? color = null)
+		public void DrawSprite(Point position, Sprite sprite, Rectangle sourceRect, Color? color = null)
 		{
 			if (sprite == null)
 				return;
@@ -1143,9 +1294,10 @@ namespace PixelEngine
 						Draw(position.X + i, position.Y + j, sprite[i + sourceRect.X, j + sourceRect.Y] * (Color)color);
 				}
 		}
-		public void DrawSprite(Sprite sprite, Point position, Rectangle sourceRect, SpriteEffects spriteEffects, Color? color = null)
+		public void DrawSprite(Point position, Sprite sprite, Rectangle sourceRect, SpriteEffects spriteEffects, Color? color = null)
 		{
-			if (sprite == null) return;
+			if (sprite == null)
+				return;
 
 			bool IsEffect(SpriteEffects effect)
 			{
@@ -1153,12 +1305,16 @@ namespace PixelEngine
 			}
 
 			Point start = Point.Zero;
-			if (position.X < 0) start.X = -position.X;
-			if (position.Y < 0) start.Y = -position.Y;
+			if (position.X < 0)
+				start.X = -position.X;
+			if (position.Y < 0)
+				start.Y = -position.Y;
 
 			Point end = sourceRect.Size;
-			if (position.X + end.X > ScreenWidth)  end.X = ScreenWidth - position.X;
-			if (position.Y + end.Y > ScreenHeight) end.Y = ScreenHeight - position.Y;
+			if (position.X + end.X > ScreenWidth)
+				end.X = ScreenWidth - position.X;
+			if (position.Y + end.Y > ScreenHeight)
+				end.Y = ScreenHeight - position.Y;
 
 			for (int i = start.X; i < end.X; i++)
 			{
@@ -1291,9 +1447,9 @@ namespace PixelEngine
 							for (int i = 0; i < cur.Width; i++)
 								for (int j = 0; j < cur.Height; j++)
 									if (cur[i, j].R > 0)
-												Draw(p.X + sx + i, p.Y + sy + j, col);
+										Draw(p.X + sx + i, p.Y + sy + j, col);
 						}
-						
+
 						sx += cur.Width * scale;
 					}
 					else
@@ -1303,7 +1459,7 @@ namespace PixelEngine
 				}
 			}
 
-			if(PixelMode != PixelMode.Custom)
+			if (PixelMode != PixelMode.Custom)
 				PixelMode = prev;
 		}
 		public void DrawTextHr(Point p, string text, Color col, int scale = 1)
@@ -1398,7 +1554,7 @@ namespace PixelEngine
 									if (cur[i, j].R > 0)
 										SetPixel(p.X + sx + i, p.Y + sy + j);
 						}
-						
+
 						sx += cur.Width * scale;
 					}
 					else
